@@ -58,6 +58,10 @@ class Light:
         self.blink_frequency_ms = blink_frequency_ms
         self.blink_start_time = ticks_ms()
 
+    def is_blinking(self, direction):
+        """Checks if the light is blinking."""
+        return self.mode == LightMode.BLINK
+
     def update(self):
         """Updates the light state based on the current mode and time."""
         if self.mode == LightMode.BLINK:
