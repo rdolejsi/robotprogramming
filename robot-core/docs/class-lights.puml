@@ -1,0 +1,132 @@
+
+@startuml
+
+namespace Lights {
+    class LightDriver as "LightDriver\n//<<Updateable>>//" {
+        .... //ref// ....
+        * light_placement: LightPlacement
+        * lights: Light[8]
+        * neopixel: NeoPixel
+
+        .... //state// ....
+        - light_front_enabled: bool
+        - light_back_enabled: bool
+
+        .... //API// ....
+        + front_on|off()
+        + front_beam_on|off()
+        + back_on|off()
+        + brake_on|off()
+        + blink(direction, blink_freq_ms: int)
+        + blink_off()
+        + off()
+        .... //state machine// ....
+        + update()
+    }
+
+    note right of LightDriver
+        Handles the light subsystem, utilizing
+        NeoPixel light strip. The light placement
+        on the strip is driven by the LightPlacement
+        configuration, the NeoPixel device is updated
+        in bulk when any light reports state change.
+    end note
+
+    note left of LightDriver::light_front_enabled
+        front light (on/off) state
+        after beam lights go off.
+    end note
+
+    note left of LightDriver::light_back_enabled
+        backlight (on/off) state
+        after break lights go off.
+    end note
+
+    note left of LightDriver::update
+        Calls update() on all lights.
+        If any light state changes,
+        updates NeoPixel device in bulk.
+    end note
+
+    class LightPlacement {
+        .... //config// ....
+        * directions: enum
+        * colors: enum
+        * initial_color_for_position: triple[]
+
+        .... //placement config// ....
+        * blinkers: dict{left: int[], right: int[]}
+        * front_lights: int[]
+        * back_lights: int[]
+    }
+
+    note bottom of LightPlacement
+        Defines the color scheme
+        and light placement by type
+        used in the Joy-Car Robot.
+    end note
+
+    class Light as "Light\n//<<Updateable>>//" {
+        .... //config// ....
+        * i2c_address
+        * position
+        * light_on_cmd
+        * light_off_cmd
+        * light_blink_cmd
+        * light_color_cmd
+
+        .... //state// ....
+        - on_color
+        - mode: enum
+        - blink_frequency_ms: int
+        - blink_start_time: ticks
+        - state: triple
+        - changed: bool
+
+        .... //API// ....
+        + set_color(color: triple)
+        + on()
+        + off()
+        + blink(blink_freq_ms: int)
+
+        .... //state machine// ....
+        + update()
+    }
+
+    note right of Light
+        Handles single light capable of turning
+        on, off, blinking with given interval and
+        color change.
+    end note
+
+    note left of Light::on_color
+        set color of the enabled light
+        (persistent over on/off cycles)
+    end note
+
+    note left of Light::mode
+        current light mode
+        (on, off, blink)
+    end note
+
+    note left of Light::blink_frequency_ms
+        blink frequency in millis
+        when in blink mode
+    end note
+
+    note left of Light::set_color
+        modifies color when enabled
+        (does NOT alter current state)
+    end note
+
+    note left of Light::update
+        updates light state based on mode.
+        When in blinking mode, changes
+        color after ticks_diff reaches blink_freq.
+    end note
+
+    LightDriver ..> Light: "delegates light behavior\nand grabs state changes"
+    LightDriver ..> LightPlacement: "loads light placement\nand color scheme"
+}
+
+@enduml

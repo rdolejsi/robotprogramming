@@ -1,0 +1,101 @@
+
+@startuml
+
+namespace DriveTrain {
+    class WheelDriver {
+        .... //config// ....
+        * i2c_freq
+        * i2c_address
+
+        .... //ref// ....
+        - wheel_left
+        - wheel_right
+
+        .... //API// ....
+        + move(speed l/r: int)
+        + move_by_ticks(speed l/r: int, ticks l/r: int)
+        + move_by_time(speed l/r: int, time_ms: int)
+        + set_speed(speed: int)
+        + stop()
+        + get_speed_cm_per_sec(): (float, float)
+
+        .... //state machine// ....
+        + update()
+    }
+
+    note top of WheelDriver
+        Handles the movement of the whole robot
+        (forward, backward, turning). Activities
+        are either indefinite or conditional based
+        on ticks, time or real speed measured by
+        the speedometer on a wheel level.
+    end note
+
+    class Wheel as "Wheel\n//<<Updateable>>//" {
+        .... //config// ....
+        * i2c_address
+        * motor_fwd_cmd
+        * motor_rwd_cmd
+        * sensor_pin
+
+        .... //ref// ....
+        - speedometer
+
+        .... //state// ....
+        - speed
+        - distance_remain_ticks
+        - distance_req_time_ms
+        - distance_start_time_ms
+        - sensor_value
+
+        .... //API// ....
+        + move()
+        + move_by_ticks()
+        + move_by_time()
+        + set_speed()
+        + stop()
+
+        .... //state machine// ....
+        + update()
+    }
+
+    note top of Wheel
+        Handles single wheel capable of moving
+        forward or backward with given (variable)
+        speed and stop immediately or conditionally
+        based on distance and time.
+    end note
+
+    class WheelSpeedometer {
+        .... //config// ....
+        * tick_counter_history_max_length = 10
+        * tick_counter_history_interval_ms = 100
+        * ticks_per_wheel_rotation = 40
+        * wheel_radius_cm = 3.75
+        * wheel_circumference_cm =
+            2 * Pi * wheel_radius_cm
+
+        .... //state// ....
+        - tick_counter = 0
+        - tick_counter_history = []
+
+        .... //API// ....
+        + get_speed_cm_per_sec()
+
+        .... //state machine// ....
+        + on_tick()
+    }
+
+    note right of WheelSpeedometer
+        Speedometer is able to monitor
+        the wheel movement precisely and
+        provide the actual wheel rotation speed
+        over the ticks measured for X consecutive
+        constant time intervals.
+    end note
+
+    WheelDriver .right.> Wheel: "moves each wheel separately based\non the upper level math (curves)\nand the speedometer feedback"
+    Wheel .down.> WheelSpeedometer: "allows for autonomous commands\nbased on real distance and/or real speed"
+}
+
+@enduml
