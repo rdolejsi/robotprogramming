@@ -7,14 +7,17 @@ class LightPlacement:
         LEFT_DIRECTION: [1, 4],
         RIGHT_DIRECTION: [2, 7]
     }
-    front_lights = [0, 3]
-    back_lights = [5, 6]
+    headlights = [0, 3]
+    backlights = [5, 6]
+    # Only one light is used for reverse, other stays as back or brake light
+    reverse_lights = [5]
 
     WHITE_BRIGHT = (255, 255, 255)
-    WHITE_MILD = (30, 30, 30)
-    ORANGE = (255, 165, 0)
+    WHITE_MID = (128, 128, 128)
+    WHITE_MILD = (60, 60, 60)
+    ORANGE = (100, 35, 0)
     RED_BRIGHT = (255, 0, 0)
-    RED_MILD = (30, 0, 0)
+    RED_MILD = (60, 0, 0)
 
     initial_color_for_position = [
         WHITE_MILD, ORANGE, ORANGE, WHITE_MILD,
