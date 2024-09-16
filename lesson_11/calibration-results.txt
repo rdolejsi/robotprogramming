@@ -1,0 +1,15 @@
+Levy
+----
+Min_rychlost    	1.54813
+Min_pwm_rozjezd		50
+Min_pwm_zpomal		42
+Parametr a přímky	12.3000517117357
+Parametr b přímky	30.9579209435106 + 5 kompenzace
+
+Pravy
+-----
+Min_rychlost		1.394492
+Min_pwm_rozjezd		50
+Min_pwm_zpomal		36
+Parametr a přímky	12.7408758128997
+Parametr b přímky	32.2329506059178 + 5 kompenzace
