@@ -61,7 +61,7 @@ class Wheel:
         distance or time previously set to perform. If the wheel was going
         in the other direction, resets the H-bridge other direction first."""
         if speed_pwm == 0:
-            print("Stopping %s wheel" % self.name)
+            # print("Stopping %s wheel" % self.name)
             i2c.write(self.i2c_address, bytes([self.motor_fwd_cmd, 0]))
             i2c.write(self.i2c_address, bytes([self.motor_rwd_cmd, 0]))
             return
@@ -70,10 +70,10 @@ class Wheel:
             # if we are changing the direction, we need to reset the motor first
             motor_reset_cmd = (self.motor_rwd_cmd
                                if speed_pwm >= 0 else self.motor_fwd_cmd)
-            print("Changing %s wheel direction" % self.name)
+            # print("Changing %s wheel direction" % self.name)
             i2c.write(self.i2c_address, bytes([motor_reset_cmd, 0]))
         motor_set_cmd = self.motor_fwd_cmd if speed_pwm > 0 else self.motor_rwd_cmd
-        print("Setting %s wheel speed_pwm %d" % (self.name, speed_pwm))
+        # print("Setting %s wheel speed_pwm %d" % (self.name, speed_pwm))
         i2c.write(self.i2c_address, bytes([motor_set_cmd, abs(speed_pwm)]))
         self.speed_pwm = speed_pwm
 
