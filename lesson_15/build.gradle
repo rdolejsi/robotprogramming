@@ -1,0 +1,133 @@
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
+import java.nio.file.Files
+import java.util.regex.Matcher
+import java.util.stream.Collectors
+
+ext {
+    classFiles = List.of(
+            "local_cely_projekt.py",
+            "local_live.py"
+    )
+    uploadWithSudo = true
+}
+
+task clean {
+    doLast {
+        logger.lifecycle("Cleaning ..")
+        delete "${buildDir}"
+    }
+}
+
+task minify {
+    doLast {
+        mkdir "${buildDir}/minified"
+        classFiles.each { file ->
+            exec {
+                workingDir "${projectDir}"
+                commandLine = [
+                        'pyminify', "${file}",
+                        '--remove-literal-statements', '--no-rename-locals', '--no-hoist-literals',
+                        '--no-remove-explicit-return-none', '--no-remove-return-annotations',
+                        '--output', "${buildDir}/minified/${file}"
+                ]
+            }
+        }
+    }
+}
+
+def mergeSource(BufferedWriter writer, File source, Set<String> imports, Map<String, Set<String>> importsFrom) {
+    logger.lifecycle("Merging ${source}")
+    writer.newLine()
+    writer.newLine()
+    try (BufferedReader reader = new BufferedReader(new FileReader(source))) {
+        boolean header = true;
+        while (reader.ready()) {
+            String line = reader.readLine()
+            if (header) {
+                if (line.startsWith("class") || line.startsWith("def") || line.startsWith("if")) {
+                    header = false
+                } else if (line.startsWith("import")) {
+                    line = line.replaceFirst("import\\s+", "")
+                    imports.addAll(Arrays.asList(line.split(",\\s*")))
+                } else if (line.startsWith("from")) {
+                    String importSource = line.replaceAll("from (\\S+)\\s?.*\$", "\$1")
+                    String objects = line.replaceFirst("from\\s+(\\S+)\\s+import\\s+", "")
+                    importsFrom.computeIfAbsent(importSource, value -> new LinkedHashSet<>())
+                            .addAll(Arrays.asList(objects.split(",\\s*")))
+                }
+            }
+            if (!header) {
+                writer.write(line)
+                writer.newLine()
+            }
+        }
+    }
+}
+
+def mergeAll(File target, List<String> classFiles) {
+    def imports = new LinkedHashSet<String>()
+    def importsFrom = new LinkedHashMap<String, Set<String>>()
+    String body
+    try (StringWriter bodyWriter = new StringWriter()) {
+        try (BufferedWriter writer = new BufferedWriter((bodyWriter))) {
+            classFiles.each { mergeSource(writer, file(it), imports, importsFrom) }
+        }
+        body = bodyWriter.toString()
+    }
+
+    List<String> classSources = classFiles.stream()
+            .map { it.replaceAll("\\.py", "").replaceAll(".*/", "") }
+            .collect(Collectors.toList())
+    try (BufferedWriter writer = new BufferedWriter((new FileWriter(target, false)))) {
+        logger.lifecycle("Merging all into ${target}")
+        String importsCsv = imports.stream()
+                .filter { !classSources.contains(it) }
+                .collect(Collectors.joining(", "))
+        if (!importsCsv.trim().isBlank()) {
+            writer.write("import ${importsCsv}")
+            writer.newLine()
+        }
+        importsFrom.entrySet().forEach { entry ->
+            if (!classSources.contains(entry.getKey())) {
+                def objects = String.join(", ", entry.getValue())
+                writer.write("from ${entry.getKey()} import ${objects}")
+                writer.newLine()
+            }
+        }
+        writer.write(body)
+    }
+}
+
+task buildMini {
+    dependsOn minify
+    doLast {
+        List<String> files = classFiles.stream()
+                .map { "${buildDir}/minified/${it}" }
+                .toList()
+        mergeAll(file("${buildDir}/minified/main.py"), files)
+    }
+}
+
+task build {
+    dependsOn buildMini
+    doLast {
+        mergeAll(file("${buildDir}/main.py"), classFiles)
+    }
+}
+
+task upload {
+    dependsOn build
+    doLast {
+        def uploadFile = file("${buildDir}/minified/main.py")
+        def cmd = uploadWithSudo ?
+                ['sudo', 'ufs', 'put', "${uploadFile}"] :
+                ['ufs', 'put', "${uploadFile}"]
+        logger.lifecycle("Uploading ${uploadFile}")
+        exec {
+            workingDir "${projectDir}"
+            commandLine = cmd
+        }
+    }
+}
