@@ -38,7 +38,7 @@ namespace DriveTrain {
         (forward, backward, turning). Activities
         are either indefinite or conditional based
         on ticks, time or real speed measured by
-        the speedometer on a wheel level.
+        the encoder on a wheel level.
     end note
 
     class Wheel as "Wheel\n//<<Updateable>>//" {
@@ -51,19 +51,19 @@ namespace DriveTrain {
         based on distance and time.
     end note
 
-    class WheelSpeedometer {
+    class WheelEncoder {
     }
 
-    note right of WheelSpeedometer
-        Speedometer is able to monitor
+    note right of WheelEncoder
+        Encoder is able to monitor
         the wheel movement precisely and
         provide the actual wheel rotation speed
         over the ticks measured for X consecutive
         constant time intervals.
     end note
 
-    WheelDriver .right.> Wheel: "moves each wheel separately based\non the upper level math (curves)\nand the speedometer feedback"
-    Wheel .down.> WheelSpeedometer: "allows for autonomous commands\nbased on real distance and/or real speed"
+    WheelDriver .right.> Wheel: "moves each wheel separately based\non the upper level math (curves)\nand the encoder feedback"
+    Wheel .down.> WheelEncoder: "allows for autonomous commands\nbased on real distance and/or real speed"
 }
 
 namespace Robot {

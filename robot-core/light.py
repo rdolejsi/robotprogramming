@@ -1,4 +1,4 @@
-from time import ticks_ms, ticks_diff
+from utime import ticks_us, ticks_diff
 
 
 class LightMode:
@@ -27,7 +27,7 @@ class Light:
         self.state = (0, 0, 0)
         self.changed = True
         self.mode = LightMode.PLAIN
-        self.blink_frequency_ms = 0
+        self.blink_frequency_us = 0
         self.blink_start_time = 0
 
     def set_color(self, color):
@@ -52,11 +52,11 @@ class Light:
             self.state = (0, 0, 0)
             self.changed = True
 
-    def blink(self, blink_frequency_ms):
+    def blink(self, blink_frequency_us):
         """Blinks the light between black and on_color with the given frequency."""
         self.mode = LightMode.BLINK
-        self.blink_frequency_ms = blink_frequency_ms
-        self.blink_start_time = ticks_ms()
+        self.blink_frequency_us = blink_frequency_us
+        self.blink_start_time = ticks_us()
 
     def is_blinking(self, direction):
         """Checks if the light is blinking."""
@@ -65,9 +65,9 @@ class Light:
     def update(self):
         """Updates the light state based on the current mode and time."""
         if self.mode == LightMode.BLINK:
-            time_delta = ticks_diff(ticks_ms(), self.blink_start_time)
-            if time_delta >= self.blink_frequency_ms:
-                self.blink_start_time = ticks_ms()
+            time_delta = ticks_diff(ticks_us(), self.blink_start_time)
+            if time_delta >= self.blink_frequency_us:
+                self.blink_start_time = ticks_us()
                 if self.state == (0, 0, 0):
                     self.state = self.on_color
                 else:
