@@ -17,7 +17,7 @@ namespace Lights {
         + front_beam_on|off()
         + back_on|off()
         + brake_on|off()
-        + blink(direction, blink_freq_ms: int)
+        + blink(direction, blink_freq_us: int)
         + blink_off()
         + off()
         .... //state machine// ....
@@ -78,7 +78,7 @@ namespace Lights {
         .... //state// ....
         - on_color
         - mode: enum
-        - blink_frequency_ms: int
+        - blink_frequency_us: int
         - blink_start_time: ticks
         - state: triple
         - changed: bool
@@ -87,7 +87,7 @@ namespace Lights {
         + set_color(color: triple)
         + on()
         + off()
-        + blink(blink_freq_ms: int)
+        + blink(blink_freq_us: int)
 
         .... //state machine// ....
         + update()
@@ -109,7 +109,7 @@ namespace Lights {
         (on, off, blink)
     end note
 
-    note left of Light::blink_frequency_ms
+    note left of Light::blink_frequency_us
         blink frequency in millis
         when in blink mode
     end note

@@ -1,17 +1,40 @@
 from microbit import pin0
 from neopixel import NeoPixel
 from light import Light
-from light_placement import LightPlacement
+
 
 class LightDriver:
     """Handles the light subsystem of Joy-Car Robot, utilizing NeoPixel light strip.
     Each light is represented by a Light object, which is capable of maintaining
     its state and providing it when an update is needed on the hardware side."""
+    LEFT_DIRECTION = 0
+    RIGHT_DIRECTION = 1
+
+    blinkers = {
+        LEFT_DIRECTION: [1, 4],
+        RIGHT_DIRECTION: [2, 7]
+    }
+    headlights = [0, 3]
+    backlights = [5, 6]
+    # Only one light is used for reverse, other stays as back or brake light
+    reverse_lights = [5]
+
+    WHITE_BRIGHT = (180, 180, 180)
+    WHITE_MID = (90, 90, 90)
+    WHITE_MILD = (30, 30, 30)
+    ORANGE = (100, 35, 0)
+    RED_BRIGHT = (255, 0, 0)
+    RED_MILD = (30, 0, 0)
+
+    initial_color_for_position = [
+        WHITE_MILD, ORANGE, ORANGE, WHITE_MILD,
+        ORANGE, RED_MILD, RED_MILD, ORANGE
+    ]
 
     def __init__(self):
         """Initializes the light driver with all lights initially switched off."""
         self.lights = [
-            Light(idx, on_color=LightPlacement.initial_color_for_position[idx])
+            Light(idx, on_color=self.initial_color_for_position[idx])
             for idx in range(8)
         ]
         self.neopixel = NeoPixel(pin0, 8)
@@ -24,6 +47,7 @@ class LightDriver:
         self.back_enabled = False
         self.brake_enabled = False
         self.reverse_enabled = False
+        self.off()
         self.update()
 
     def update(self):
@@ -43,54 +67,54 @@ class LightDriver:
         """Turns the headlights on. If beam headlights are on, lights are unaffected."""
         self.head_enabled = True
         if not self.beam_enabled:
-            for light_pos in LightPlacement.headlights:
-                self.lights[light_pos].set_color(LightPlacement.WHITE_MILD)
+            for light_pos in self.headlights:
+                self.lights[light_pos].set_color(self.WHITE_MILD)
                 self.lights[light_pos].on()
 
     def head_off(self):
         """Turns the headlights off."""
         self.head_enabled = False
         if not self.beam_enabled:
-            for light_pos in LightPlacement.headlights:
+            for light_pos in self.headlights:
                 self.lights[light_pos].off()
 
     def beam_on(self):
         """Turns the beam headlights on."""
         self.beam_enabled = True
-        for light_pos in LightPlacement.headlights:
-            self.lights[light_pos].set_color(LightPlacement.WHITE_BRIGHT)
+        for light_pos in self.headlights:
+            self.lights[light_pos].set_color(self.WHITE_BRIGHT)
             self.lights[light_pos].on()
 
     def beam_off(self):
         """Turns the beam headlights off. If standard headlights are on,
         the shared lights are switched to them."""
         self.beam_enabled = False
-        for light_pos in LightPlacement.headlights:
+        for light_pos in self.headlights:
             if self.head_enabled is True:
                 self.head_on()
             else:
                 self.lights[light_pos].off()
 
-    def blink(self, direction, blink_frequency_ms):
+    def blink(self, direction, blink_frequency_us):
         """Blinks the light(s) indicating the given direction."""
-        for position in LightPlacement.blinkers[direction]:
-            self.lights[position].blink(blink_frequency_ms)
+        for position in self.blinkers[direction]:
+            self.lights[position].blink(blink_frequency_us)
 
-    def blink_emergency(self, blink_frequency_ms):
+    def blink_emergency(self, blink_frequency_us):
         """Blinks all turn-indicating light(s) to signal an emergency."""
-        self.blink(LightPlacement.LEFT_DIRECTION, blink_frequency_ms)
-        self.blink(LightPlacement.RIGHT_DIRECTION, blink_frequency_ms)
+        self.blink(self.LEFT_DIRECTION, blink_frequency_us)
+        self.blink(self.RIGHT_DIRECTION, blink_frequency_us)
 
     def blink_off(self):
         """Stops blinking on all blinker lights."""
-        for position in LightPlacement.blinkers[LightPlacement.LEFT_DIRECTION]:
+        for position in self.blinkers[self.LEFT_DIRECTION]:
             self.lights[position].off()
-        for position in LightPlacement.blinkers[LightPlacement.RIGHT_DIRECTION]:
+        for position in self.blinkers[self.RIGHT_DIRECTION]:
             self.lights[position].off()
 
     def is_blinking(self, direction):
         """Checks if the light(s) indicating the given direction are blinking."""
-        position_first = LightPlacement.blinkers[direction][0]
+        position_first = self.blinkers[direction][0]
         return self.lights[position_first].is_blinking()
 
     def off(self):
@@ -134,16 +158,16 @@ class LightDriver:
         """Updates the backlights based on the current state of shared back,
         brake and reverse lights. The priority is reverse > brake > back.
         If reverse is on, only the reverse light is on."""
-        for light_pos in LightPlacement.backlights:
-            light_is_reverse = light_pos in LightPlacement.reverse_lights
+        for light_pos in self.backlights:
+            light_is_reverse = light_pos in self.reverse_lights
             if self.reverse_enabled is True and light_is_reverse:
-                self.lights[light_pos].set_color(LightPlacement.WHITE_MID)
+                self.lights[light_pos].set_color(self.WHITE_MID)
                 self.lights[light_pos].on()
             elif self.brake_enabled is True:
-                self.lights[light_pos].set_color(LightPlacement.RED_BRIGHT)
+                self.lights[light_pos].set_color(self.RED_BRIGHT)
                 self.lights[light_pos].on()
             elif self.back_enabled is True:
-                self.lights[light_pos].set_color(LightPlacement.RED_MILD)
+                self.lights[light_pos].set_color(self.RED_MILD)
                 self.lights[light_pos].on()
             else:
                 self.lights[light_pos].off()

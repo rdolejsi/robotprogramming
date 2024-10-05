@@ -14,7 +14,7 @@ namespace DriveTrain {
         .... //API// ....
         + move(speed l/r: int)
         + move_by_ticks(speed l/r: int, ticks l/r: int)
-        + move_by_time(speed l/r: int, time_ms: int)
+        + move_by_time(speed l/r: int, time_us: int)
         + set_speed(speed: int)
         + stop()
         + get_speed_cm_per_sec(): (float, float)
@@ -28,7 +28,7 @@ namespace DriveTrain {
         (forward, backward, turning). Activities
         are either indefinite or conditional based
         on ticks, time or real speed measured by
-        the speedometer on a wheel level.
+        the encoder on a wheel level.
     end note
 
     class Wheel as "Wheel\n//<<Updateable>>//" {
@@ -39,13 +39,13 @@ namespace DriveTrain {
         * sensor_pin
 
         .... //ref// ....
-        - speedometer
+        - encoder
 
         .... //state// ....
         - speed
         - distance_remain_ticks
-        - distance_req_time_ms
-        - distance_start_time_ms
+        - distance_req_time_us
+        - distance_start_time_us
         - sensor_value
 
         .... //API// ....
@@ -66,10 +66,10 @@ namespace DriveTrain {
         based on distance and time.
     end note
 
-    class WheelSpeedometer {
+    class WheelEncoder {
         .... //config// ....
         * tick_counter_history_max_length = 10
-        * tick_counter_history_interval_ms = 100
+        * tick_counter_history_interval_us = 100
         * ticks_per_wheel_rotation = 40
         * wheel_radius_cm = 3.75
         * wheel_circumference_cm =
@@ -86,16 +86,16 @@ namespace DriveTrain {
         + on_tick()
     }
 
-    note right of WheelSpeedometer
-        Speedometer is able to monitor
+    note right of WheelEncoder
+        Encoder is able to monitor
         the wheel movement precisely and
         provide the actual wheel rotation speed
         over the ticks measured for X consecutive
         constant time intervals.
     end note
 
-    WheelDriver .right.> Wheel: "moves each wheel separately based\non the upper level math (curves)\nand the speedometer feedback"
-    Wheel .down.> WheelSpeedometer: "allows for autonomous commands\nbased on real distance and/or real speed"
+    WheelDriver .right.> Wheel: "moves each wheel separately based\non the upper level math (curves)\nand the encoder feedback"
+    Wheel .down.> WheelEncoder: "allows for autonomous commands\nbased on real distance and/or real speed"
 }
 
 @enduml
