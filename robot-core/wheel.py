@@ -21,7 +21,7 @@ class Wheel:
         self.distance_req_time_us = 0
         self.distance_start_time_us = 0
         self.speed_pwm = 0
-        self.encoder = WheelEncoder(sensor_pin=sensor_pin)
+        self.enc = WheelEncoder(sensor_pin=sensor_pin)
         self.pwm_min = pwm_min
         self.pwm_max = pwm_max
         self.pwm_multiplier = pwm_multiplier
@@ -53,20 +53,8 @@ class Wheel:
 
     def move_pwm_for_distance(self, speed_pwm, distance):
         """Moves the wheel forward using given PWM speed for given distance in meters."""
-        ticks_for_distance = int(distance * self.encoder.get_ticks_per_m())
+        ticks_for_distance = int(distance * self.enc.TICKS_PER_M)
         self.move_pwm_for_ticks(speed_pwm, ticks_for_distance)
-
-    def move_radsec_for_distance(self, speed_radsec, distance):
-        """Moves the wheel forward using given m/s speed for given distance in meters."""
-        speed_pwm = self.radsec2pwm(speed_radsec)
-        distance_ticks = int(distance * self.encoder.get_ticks_per_m())
-        return speed_pwm, distance_ticks
-
-    def move_msec_for_distance(self, speed_msec, distance):
-        """Moves the wheel forward using given m/s speed for given distance in meters."""
-        speed_pwm = self.msec2pwm(speed_msec)
-        distance_ticks = int(distance * self.encoder.get_ticks_per_m())
-        return speed_pwm, distance_ticks
 
     def set_speed_pwm(self, speed_pwm):
         """Sets the wheel PWM speed (and direction). Does not affect the remaining
@@ -78,6 +66,9 @@ class Wheel:
             i2c.write(self.i2c_address, bytes([self.motor_rwd_cmd, 0]))
             return
         speed_pwm = int(max(-255, min(255, speed_pwm)))
+        if self.speed_pwm == speed_pwm:
+            return
+        self.enc.reset()
         if (self.speed_pwm < 0 < speed_pwm) or (self.speed_pwm > 0 > speed_pwm):
             # if we are changing the direction, we need to reset the motor first
             motor_reset_cmd = (self.motor_rwd_cmd
@@ -88,18 +79,6 @@ class Wheel:
         # print("Setting %s wheel speed_pwm %d" % (self.name, speed_pwm))
         i2c.write(self.i2c_address, bytes([motor_set_cmd, abs(speed_pwm)]))
         self.speed_pwm = speed_pwm
-
-    def get_speed_pwm(self):
-        """Returns the current PWM speed of the wheel."""
-        return self.speed_pwm
-
-    def get_speed_msec(self):
-        """Returns the current speed of the wheel."""
-        return self.encoder.get_speed_msec()
-
-    def get_speed_radsec(self):
-        """Returns the current speed of the wheel in radians per second."""
-        return self.encoder.get_speed_radsec()
 
     def radsec2pwm(self, radsec):
         """Returns the PWM speed for the given rad/s speed.
@@ -112,7 +91,7 @@ class Wheel:
 
     def msec2pwm(self, msec):
         """Returns the PWM speed for the given m/s speed."""
-        rad_per_sec = self.encoder.m2rad(msec)
+        rad_per_sec = self.enc.m2rad(msec)
         return self.radsec2pwm(rad_per_sec)
 
     def stop(self):
@@ -120,7 +99,7 @@ class Wheel:
         self.set_speed_pwm(0)
         self.distance_remain_ticks = -1
         self.distance_req_time_us = -1
-        self.encoder.reset()
+        self.enc.reset()
 
     def stop_on_no_work(self):
         """Stops the wheel if the remaining distance in ticks or time is reached."""
@@ -140,7 +119,6 @@ class Wheel:
     def on_tick(self):
         """Updates the wheel state based on a new tick,
         checks the remaining distance in ticks."""
-        self.encoder.on_tick()
         if self.distance_remain_ticks > 0:
             self.distance_remain_ticks -= 1
             if self.distance_remain_ticks == 0:
@@ -148,6 +126,6 @@ class Wheel:
 
     def update(self):
         """Updates the encoder and general wheel state."""
-        if self.encoder.update() is True:
+        if self.enc.update() is True:
             self.on_tick()
         self.stop_on_no_work()

@@ -17,11 +17,11 @@ class WheelDriver:
         i2c.init(freq=100000)
         i2c.write(self.I2C_ADDRESS, b"\x00\x01")
         i2c.write(self.I2C_ADDRESS, b"\xE8\xAA")
-        self.wheel_left = Wheel(name="left", i2c_address=self.I2C_ADDRESS,
+        self.left = Wheel(name="left", i2c_address=self.I2C_ADDRESS,
                                 motor_fwd_cmd=5, motor_rwd_cmd=4, sensor_pin=pin14,
                                 pwm_min=left_pwm_min, pwm_max=left_pwm_max,
                                 pwm_multiplier=left_pwm_multiplier, pwm_shift=left_pwm_shift)
-        self.wheel_right = Wheel(name="right", i2c_address=self.I2C_ADDRESS,
+        self.right = Wheel(name="right", i2c_address=self.I2C_ADDRESS,
                                  motor_fwd_cmd=3, motor_rwd_cmd=2, sensor_pin=pin15,
                                  pwm_min=right_pwm_min, pwm_max=right_pwm_max,
                                  pwm_multiplier=right_pwm_multiplier, pwm_shift=right_pwm_shift)
@@ -32,10 +32,10 @@ class WheelDriver:
 
     def stop(self):
         """Stops the robot."""
-        self.wheel_left.stop()
-        self.wheel_right.stop()
+        self.left.stop()
+        self.right.stop()
 
     def update(self):
         """Updates the wheel driver, propagating the changes to the hardware."""
-        self.wheel_left.update()
-        self.wheel_right.update()
+        self.left.update()
+        self.right.update()

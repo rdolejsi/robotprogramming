@@ -81,8 +81,8 @@ class WheelCalibrator:
         self.wheel.move_pwm(speed_pwm)
         while ticks_diff(ticks_us(), start_time) <= 500 * 1000:
             self.wheel.update()
-        radsec = self.wheel.get_speed_radsec()
-        msec = self.wheel.get_speed_msec()
+        radsec = self.wheel.enc.speed_radsec
+        msec = self.wheel.enc.speed_msec()
         self.wheel.stop()
         return radsec, msec
 
@@ -116,5 +116,5 @@ class WheelCalibrator:
             #  We just print the calibration data for the border values (min 5, max 5)
             if pwm < self.wheel.pwm_min + 5 or pwm > self.wheel.pwm_max - 5:
                 radsec = self.p2m2radsec[pwm - self.wheel.pwm_min]
-                msec = self.wheel.encoder.rad2m(radsec)
+                msec = self.wheel.enc.rad2m(radsec)
                 print("%d,%f,%f" % (pwm, radsec, msec))
