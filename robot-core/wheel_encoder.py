@@ -4,97 +4,95 @@ class WheelEncoder:
     """Encoder is able to monitor the wheel movement precisely
     and provide the actual wheel rotation speed over the ticks
     measured for X consecutive constant time intervals."""
+    USE_BOTH_EDGES = False
+    TICKS_PER_WHEEL = 40 if USE_BOTH_EDGES else 20
+    RAD_PER_WHEEL = 2 * 3.14159265359
+    RAD_PER_TICK = RAD_PER_WHEEL / TICKS_PER_WHEEL
+    WHEEL_RADIUS_M = 0.0375
+    M_PER_WHEEL = RAD_PER_WHEEL * WHEEL_RADIUS_M
+    TICKS_PER_M = TICKS_PER_WHEEL / M_PER_WHEEL
+    MIN_TICK_TIME_US = 5_000  # minimum possible tick time (switch instability detection under this value)
+    AVG_TICK_COUNT = 3
 
     def __init__(self, sensor_pin):
         """Initializes the wheel encoder."""
         self.sensor_pin = sensor_pin
-        self.sensor_value = 0
-        self.tick_last_time = 0
-        self.tick_sampling_us = 10_000
-        self.tick_counter = 0
-        self.tick_history = []
-        self.tick_history_time = []
-        self.tick_history_length = 5
-        self.tick_history_interval_us = self.tick_history_length * self.tick_sampling_us
-        self.tick_history_sum = 0
-        self.ticks_per_wheel = 40
-        self.rad_per_wheel = 2 * 3.14159265359
-        self.rad_per_tick = self.rad_per_wheel / self.ticks_per_wheel
-        self.wheel_radius_m = 0.0375
-        self.m_per_wheel = self.rad_per_wheel * self.wheel_radius_m
-        self.speed_radians = 0
-        self.on_tick_counter = 0
+        self.sensor_value = -1
+        self.tick_last_time = -1
+        self.tick_last_time_avg = -1
+        self.update_count = 0
+        self.tick_count = 0
+        self.speed_radsec = 0
+        self.speed_radsec_avg = 0
+        self.calc_value = -1
+        self.calc_tick = 0
+        self.calc_update_count = -1
 
     def reset(self):
         """Resets the encoder state."""
-        self.tick_last_time = 0
-        self.tick_counter = 0
-        self.tick_history = []
-        self.tick_history_time = []
+        self.__init__(self.sensor_pin)
 
     def update(self):
         """Updates the encoder state based on the ongoing command."""
         """Retrieves the sensor value, checks for change and updates the wheel state
         based on the ongoing command."""
+        self.update_count += 1
+        time_now = ticks_us()
+        last_time_diff = ticks_diff(time_now, self.tick_last_time)
+        # if self.tick_last_time != 0 and last_time_diff < self.MIN_TICK_TIME_US:
+        #     return False
         sensor_value_now = self.sensor_pin.read_digital()
         if sensor_value_now == self.sensor_value:
             return False
         self.sensor_value = sensor_value_now
-        self.on_tick()
+        if self.tick_last_time == -1:
+            self.tick_last_time = time_now
+            self.tick_last_time_avg = time_now
+            return False
+        if sensor_value_now == 1:
+            if self.USE_BOTH_EDGES:
+                # compensate for much shorter time when the sensor is down
+                last_time_diff *= 1.8
+            else:
+                # we count just 1->0 change in this mode (to achieve uniformity between 0 and 1)
+                return
+        self.tick_last_time = time_now
+        self.speed_radsec = self.RAD_PER_TICK / (last_time_diff / 1_000_000)
+
+        # calculate average speed (simplistic, just accumulate last several ticks once in a while)
+        self.tick_count += 1
+        if self.tick_count < self.AVG_TICK_COUNT:
+            if self.speed_radsec_avg == 0:
+                self.speed_radsec_avg = self.speed_radsec
+        else:
+            last_time_avg_diff = ticks_diff(time_now, self.tick_last_time_avg)
+            self.speed_radsec_avg = self.RAD_PER_TICK * self.AVG_TICK_COUNT / (last_time_avg_diff / 1_000_000)
+            self.tick_last_time_avg = time_now
+            self.tick_count = 0
+
+        self.calc_value = sensor_value_now
+        self.calc_tick = self.tick_count
+        self.calc_update_count = self.update_count
+        if self.speed_radsec > 0 and self.update_count < (4 if self.USE_BOTH_EDGES else 2):
+            print("Warning: wheel encoder updating slow, %s counts per change" % self.update_count)
+        self.update_count = 0
         return True
 
-    def on_tick(self):
-        """Updates the encoder state based on a new tick."""
-        self.tick_counter += 1
-        self.on_tick_counter += 1
-        now = ticks_us()
-        time_delta = ticks_diff(now, self.tick_last_time)
-        # if the last tick was too long ago, we reset the history
-        history_too_old = time_delta >= self.tick_history_interval_us * self.tick_history_length
-        if self.tick_last_time == 0 or history_too_old:
-            self.tick_last_time = now
-            self.tick_history_time = []
-            self.tick_history_time.append(now)
-            self.tick_history = []
-            self.tick_history.append(self.tick_counter)
-            self.tick_history_sum = self.tick_counter
-        elif time_delta >= self.tick_history_interval_us:
-            self.tick_history_time.append(now)
-            self.tick_history.append(self.tick_counter)
-            self.tick_history_sum += self.tick_counter
-            if len(self.tick_history) > self.tick_history_length:
-                self.tick_history_time.pop(0)
-                tick_count_obsolete = self.tick_history.pop(0)
-                self.tick_history_sum -= tick_count_obsolete
-            self.tick_counter = 0
-            self.tick_last_time = now
-
-    def get_speed_radsec(self):
-        """Returns the current wheel speed in radians/s."""
-        if len(self.tick_history) == 0:
-            return 0
-        # print("history %s" % self.tick_history)
-        elapsed_time = ticks_diff(self.tick_history_time[-1], self.tick_history_time[0])
-        sec_fragment = (1_000_000 / elapsed_time) if elapsed_time > 0 else 1
-        speed = (self.tick_history_sum / self.ticks_per_wheel) * self.rad_per_wheel * sec_fragment
-        return speed
-
-    def get_speed_msec(self):
+    def speed_msec(self):
         """Returns the current wheel speed in m/s."""
-        return (self.get_speed_radsec() / self.rad_per_wheel) * self.m_per_wheel
+        return self.M_PER_WHEEL * self.speed_radsec / self.RAD_PER_WHEEL
+
+    def speed_msec_avg(self):
+        """Returns the current wheel speed in m/s."""
+        return self.M_PER_WHEEL * self.speed_radsec_avg / self.RAD_PER_WHEEL
 
     def m2rad(self, m):
         """Converts meters to radians."""
-        return m / self.m_per_wheel * self.rad_per_wheel
+        return self.RAD_PER_WHEEL * m / self.M_PER_WHEEL
 
-    def rad2m(self, radians):
+    def rad2m(self, rad):
         """Converts radians to meters."""
-        return radians / self.rad_per_wheel * self.m_per_wheel
-
-    def get_ticks_per_m(self):
-        """Returns the number of ticks per m."""
-        return self.ticks_per_wheel / self.m_per_wheel
+        return self.M_PER_WHEEL * rad / self.RAD_PER_WHEEL
 
     def __str__(self):
-        params = (self.get_speed_msec(), self.tick_history)
-        return "speed: %.2f m/s, tick history: %s" % params
+        return "speed: %f rad/s, %f m/s" % (self.speed_radsec, self.speed_msec())

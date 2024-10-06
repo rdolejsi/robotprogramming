@@ -8,8 +8,8 @@ namespace DriveTrain {
         * i2c_address
 
         .... //ref// ....
-        - wheel_left
-        - wheel_right
+        - left
+        - right
 
         .... //API// ....
         + move(speed l/r: int)
