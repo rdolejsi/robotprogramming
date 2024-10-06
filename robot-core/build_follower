@@ -1,0 +1,8 @@
+#!/bin/bash
+CLEAN="clean"
+BUILD="build"
+if [ "$1" == "-u" ]; then
+  CLEAN=""
+  BUILD=""
+fi
+./gradlew -Pmini -Pmain=main_follower.py -Pexclude=light.*,wheel_calibrator.py $CLEAN $BUILD upload

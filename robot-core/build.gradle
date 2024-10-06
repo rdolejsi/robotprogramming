@@ -162,7 +162,7 @@ task build {
 }
 
 task upload {
-    dependsOn build
+    shouldRunAfter build
     doLast {
         def uploadFile = new File(useMini ? miniDir : buildDir, "main.py")
         def cmd = useSudo ?
