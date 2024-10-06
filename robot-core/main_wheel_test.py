@@ -1,21 +1,14 @@
-from microbit import sleep, button_a
 from utime import ticks_us, ticks_diff
 
-from light_driver import LightDriver
 from wheel_driver import WheelDriver
-from sonar import Sonar
-from wheel_calibrator import WheelCalibrator
 
 if __name__ == "__main__":
-    __run__ = "__basic_motor__"
-    # __run__ = "__calibration_approx__"
+    __run__ = "__wheel_test__"
 
-    lights = LightDriver()
     wheels = WheelDriver()
-    sonar = Sonar()
 
     try:
-        if __run__ == "__basic_motor__":
+        if __run__ == "__wheel_test__":
             phase_length = 5000 * 1000
             phase_start = ticks_us()
             phase_report_length = 250 * 1000
@@ -47,10 +40,6 @@ if __name__ == "__main__":
                     phase = phases[0]
                     phases = phases[1:]
                     print("Phase %s, time_diff %d" % (phase, phase_diff))
-                    if phase == "start":
-                        wheels.stop()
-                        lights.head_on()
-                        lights.back_on()
                     if phase == "forward":
                         wheels.left.move_pwm(255)
                         wheels.right.move_pwm(255)
@@ -60,31 +49,7 @@ if __name__ == "__main__":
                     if phase == "stop":
                         wheels.stop()
                 wheels.update()
-                lights.update()
-
-        elif __run__ == "__calibration_approx__":
-            for wheel in [wheels.left, wheels.right]:
-                c = WheelCalibrator(wheel=wheel)
-                c.gather_pwm_to_real_speed_table_approx()
-                c.calibration_table_to_csv()
-
-        elif __run__ == "__sonar_angles__":
-            for angle in range(-90, 90):
-                sonar.set_angle(angle)
-                sleep(250)
-
-        elif __run__ == "__sonar_distance__":
-            while not button_a.is_pressed():
-                distance = sonar.get_distance()
-                if distance < 0:
-                    print("Error %f while getting distance value" % distance)
-                else:
-                    print("Distance %fm" % sonar.get_distance())
-                sleep(250)
 
     finally:
         wheels.stop()
-        lights.off()
-        lights.update()
-        sonar.set_angle(0)
         print("Finished")
