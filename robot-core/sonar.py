@@ -22,6 +22,8 @@ class Sonar:
     SCAN_WIDENING = 'widening'
     SCAN_FULL = 'full'
     SCAN_STEP = 5
+    # We need to find the object at least this many times before we accept it
+    SCAN_DISTANCE_ACCEPTED_AFTER_FOUND_COUNT = 2
 
     def __init__(self, trigger_pin=pin8, echo_pin=pin12, angle_pin=pin1, scan_range_max=0.5, scan_interval=125_000):
         self.trigger_pin = trigger_pin
@@ -38,6 +40,7 @@ class Sonar:
         self.scan_angle_start = 0
         self.scan_direction = 1
         self.scan_dispersion = 0
+        self.scan_distance_found_count = 0
 
     def set_angle(self, angle):
         """Sets sonar angle from -90 to 90"""
@@ -72,7 +75,6 @@ class Sonar:
     def stop_scan(self):
         """Stops the scanning mode."""
         self.scan_mode = self.SCAN_NONE
-        self.set_angle(0)
         print("Scanning stopped")
 
     def update(self):
@@ -87,16 +89,22 @@ class Sonar:
         distance = self.get_distance()
         if distance < 0:
             print("Error %f while getting distance" % distance)
+            self.scan_distance_found_count = 0
             return
 
         # we have the object, reorient future scanning to this angle, return to widening mode
         if distance < self.scan_range_max:
+            self.scan_distance_found_count += 1
+            if self.scan_distance_found_count < self.SCAN_DISTANCE_ACCEPTED_AFTER_FOUND_COUNT:
+                return
             print("Object detected at %f m" % distance)
             self.scan_mode = self.SCAN_WIDENING
             self.scan_direction = 1
             self.scan_dispersion = 0
             self.scan_angle_start = self.angle
             return
+        else:
+            self.scan_distance_found_count = 0
 
         # gradually widening scan on both sides until we cover full area, then switch to full scan left-right-left
         if self.scan_mode == self.SCAN_WIDENING:
