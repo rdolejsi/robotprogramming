@@ -1,5 +1,4 @@
 from utime import ticks_us, ticks_diff
-from math import pi
 
 class WheelEncoder:
     """Encoder is able to monitor the wheel movement precisely
@@ -19,12 +18,11 @@ class WheelEncoder:
         self.tick_history_interval_us = self.tick_history_length * self.tick_sampling_us
         self.tick_history_sum = 0
         self.ticks_per_wheel = 40
-        self.radians_per_wheel = 2 * pi
-        self.radians_per_tick = self.radians_per_wheel / self.ticks_per_wheel
-        self.wheel_radius_cm = 3.75
-        self.cm_per_wheel = self.radians_per_wheel * self.wheel_radius_cm
+        self.rad_per_wheel = 2 * 3.14159265359
+        self.rad_per_tick = self.rad_per_wheel / self.ticks_per_wheel
+        self.wheel_radius_m = 0.0375
+        self.m_per_wheel = self.rad_per_wheel * self.wheel_radius_m
         self.speed_radians = 0
-        self.speed_cm = 0
         self.on_tick_counter = 0
 
     def reset(self):
@@ -71,32 +69,32 @@ class WheelEncoder:
             self.tick_counter = 0
             self.tick_last_time = now
 
-    def get_speed_radians_per_sec(self):
+    def get_speed_radsec(self):
         """Returns the current wheel speed in radians/s."""
         if len(self.tick_history) == 0:
             return 0
         # print("history %s" % self.tick_history)
         elapsed_time = ticks_diff(self.tick_history_time[-1], self.tick_history_time[0])
-        sec_fragment = (1000 / elapsed_time) if elapsed_time > 0 else 1
-        speed = (self.tick_history_sum / self.ticks_per_wheel) * self.radians_per_wheel * sec_fragment
+        sec_fragment = (1_000_000 / elapsed_time) if elapsed_time > 0 else 1
+        speed = (self.tick_history_sum / self.ticks_per_wheel) * self.rad_per_wheel * sec_fragment
         return speed
 
-    def get_speed_cm_per_sec(self):
-        """Returns the current wheel speed in cm/s."""
-        return (self.get_speed_radians_per_sec() / self.radians_per_wheel) * self.cm_per_wheel
+    def get_speed_msec(self):
+        """Returns the current wheel speed in m/s."""
+        return (self.get_speed_radsec() / self.rad_per_wheel) * self.m_per_wheel
 
-    def cm_to_radians(self, cm):
-        """Converts cm to radians."""
-        return cm / self.cm_per_wheel * self.radians_per_wheel
+    def m2rad(self, m):
+        """Converts meters to radians."""
+        return m / self.m_per_wheel * self.rad_per_wheel
 
-    def radians_to_cm(self, radians):
-        """Converts radians to cm."""
-        return radians / self.radians_per_wheel * self.cm_per_wheel
+    def rad2m(self, radians):
+        """Converts radians to meters."""
+        return radians / self.rad_per_wheel * self.m_per_wheel
 
-    def get_ticks_per_cm(self):
-        """Returns the number of ticks per cm."""
-        return self.ticks_per_wheel / self.cm_per_wheel
+    def get_ticks_per_m(self):
+        """Returns the number of ticks per m."""
+        return self.ticks_per_wheel / self.m_per_wheel
 
     def __str__(self):
-        params = (self.get_speed_cm_per_sec(), self.tick_history)
-        return "speed: %.2f cm/s, tick history: %s" % params
+        params = (self.get_speed_msec(), self.tick_history)
+        return "speed: %.2f m/s, tick history: %s" % params

@@ -7,7 +7,8 @@ from sonar import Sonar
 from wheel_calibrator import WheelCalibrator
 
 if __name__ == "__main__":
-    __run__ = "__basic_motor__"
+    # __run__ = "__basic_motor__"
+    __run__ = "__calibration_approx__"
 
     light_driver = LightDriver()
     wheel_driver = WheelDriver()
@@ -27,21 +28,24 @@ if __name__ == "__main__":
                     phases = phases[1:]
                     print("Phase %s, time_diff %d" % (phase, phase_diff))
                     if phase == "start":
+                        wheel_driver.stop()
                         light_driver.head_on()
                         light_driver.back_on()
                     if phase == "forward":
-                        wheel_driver.move_pwm(100, 100)
+                        wheel_driver.wheel_left.move_pwm(100)
+                        wheel_driver.wheel_right.move_pwm(100)
                     if phase == "backward":
-                        wheel_driver.move_pwm(-100, -100)
+                        wheel_driver.wheel_left.move_pwm(-100)
+                        wheel_driver.wheel_right.move_pwm(-100)
                     if phase == "stop":
                         wheel_driver.stop()
-                light_driver.update()
                 wheel_driver.update()
+                light_driver.update()
 
         elif __run__ == "__calibration_approx__":
             for wheel in [wheel_driver.wheel_left, wheel_driver.wheel_right]:
                 wheel_calibrator = WheelCalibrator(wheel=wheel)
-                wheel_calibrator.gather_pwm_to_real_speed_table_fast_approx()
+                wheel_calibrator.gather_pwm_to_real_speed_table_approx()
                 wheel_calibrator.calibration_table_to_csv()
 
         elif __run__ == "__sonar_angles__":
@@ -51,11 +55,11 @@ if __name__ == "__main__":
 
         elif __run__ == "__sonar_distance__":
             while not button_a.is_pressed():
-                distance_cm = sonar.get_distance_cm()
-                if distance_cm < 0:
-                    print("Error %f while getting distance value" % distance_cm)
+                distance = sonar.get_distance()
+                if distance < 0:
+                    print("Error %f while getting distance value" % distance)
                 else:
-                    print("Distance %f" % sonar.get_distance_cm())
+                    print("Distance %fm" % sonar.get_distance())
                 sleep(250)
 
     finally:

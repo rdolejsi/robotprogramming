@@ -71,9 +71,9 @@ namespace DriveTrain {
         * tick_counter_history_max_length = 10
         * tick_counter_history_interval_us = 100
         * ticks_per_wheel_rotation = 40
-        * wheel_radius_cm = 3.75
-        * wheel_circumference_cm =
-            2 * Pi * wheel_radius_cm
+        * wheel_radius_m = 0.0375
+        * wheel_circumference_m =
+            2 * Pi * wheel_radius_m
 
         .... //state// ....
         - tick_counter = 0
