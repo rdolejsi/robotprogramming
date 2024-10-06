@@ -79,7 +79,7 @@ class WheelCalibrator:
         returns the speed in rad/s and m/s."""
         start_time = ticks_us()
         self.wheel.move_pwm(speed_pwm)
-        while ticks_diff(ticks_us(), start_time) <= 500 * 1000:
+        while ticks_diff(ticks_us(), start_time) <= 500_000:
             self.wheel.update()
         radsec = self.wheel.enc.speed_radsec
         msec = self.wheel.enc.speed_msec()

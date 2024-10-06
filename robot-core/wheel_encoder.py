@@ -8,10 +8,13 @@ class WheelEncoder:
     TICKS_PER_WHEEL = 40 if USE_BOTH_EDGES else 20
     RAD_PER_WHEEL = 2 * 3.14159265359
     RAD_PER_TICK = RAD_PER_WHEEL / TICKS_PER_WHEEL
-    WHEEL_RADIUS_M = 0.0375
+    WHEEL_CIRCUMFERENCE_M = 0.21
+    WHEEL_RADIUS_M = WHEEL_CIRCUMFERENCE_M / RAD_PER_WHEEL
+    WHEEL_CENTER_DISTANCE = 0.075
     M_PER_WHEEL = RAD_PER_WHEEL * WHEEL_RADIUS_M
     TICKS_PER_M = TICKS_PER_WHEEL / M_PER_WHEEL
     MIN_TICK_TIME_US = 5_000  # minimum possible tick time (switch instability detection under this value)
+    MAX_TICK_TIME_US = 200_000  # maximum possible tick time (after which we consider speed to be zero)
     AVG_TICK_COUNT = 3
 
     def __init__(self, sensor_pin):
@@ -39,10 +42,12 @@ class WheelEncoder:
         self.update_count += 1
         time_now = ticks_us()
         last_time_diff = ticks_diff(time_now, self.tick_last_time)
-        # if self.tick_last_time != 0 and last_time_diff < self.MIN_TICK_TIME_US:
-        #     return False
+        if self.tick_last_time != -1 and last_time_diff < self.MIN_TICK_TIME_US:
+            return False
         sensor_value_now = self.sensor_pin.read_digital()
         if sensor_value_now == self.sensor_value:
+            if last_time_diff >= self.MAX_TICK_TIME_US:
+                self.speed_radsec = 0
             return False
         self.sensor_value = sensor_value_now
         if self.tick_last_time == -1:
@@ -55,7 +60,7 @@ class WheelEncoder:
                 last_time_diff *= 1.8
             else:
                 # we count just 1->0 change in this mode (to achieve uniformity between 0 and 1)
-                return
+                return False
         self.tick_last_time = time_now
         self.speed_radsec = self.RAD_PER_TICK / (last_time_diff / 1_000_000)
 
