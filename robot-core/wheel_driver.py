@@ -27,26 +27,8 @@ class WheelDriver:
                                  pwm_multiplier=right_pwm_multiplier, pwm_shift=right_pwm_shift)
         self.stop()
 
-    def move_pwm(self, speed_pwm_left, speed_pwm_right):
-        """Moves the robot with the PWM given speed for each wheel."""
-        self.wheel_left.move_pwm(speed_pwm_left)
-        self.wheel_right.move_pwm(speed_pwm_right)
-
-    def move_pwm_for_ticks(self, speed_pwm_left, speed_pwm_right,
-                           distance_ticks_left, distance_ticks_right):
-        """Moves robot using PWM speed to given distance in ticks, for each wheel."""
-        self.wheel_left.move_pwm_for_ticks(speed_pwm_left, distance_ticks_left)
-        self.wheel_right.move_pwm_for_ticks(speed_pwm_right, distance_ticks_right)
-
-    def move_pwm_for_time(self, speed_pwm_left, speed_pwm_right, time_us):
-        """Moves robot using PWM speed for each wheel for given time."""
-        self.wheel_left.move_pwm_for_time(speed_pwm_left, time_us)
-        self.wheel_right.move_pwm_for_time(speed_pwm_right, time_us)
-
-    def move_pwm_for_distance(self, speed_pwm_left, speed_pwm_right, distance_cm):
-        """Moves robot using PWM speed for each wheel to given distance."""
-        self.wheel_left.move_pwm_for_distance(speed_pwm_left, distance_cm)
-        self.wheel_right.move_pwm_for_distance(speed_pwm_right, distance_cm)
+    # Please note: normally, we would have aggregate move...() methods here for both wheels, but
+    # these got removed in favor of smaller code memory footprint + we control each wheel separately anyway.
 
     def stop(self):
         """Stops the robot."""

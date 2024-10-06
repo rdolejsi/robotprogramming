@@ -2,7 +2,7 @@ from microbit import pin1, pin8, pin12
 from machine import time_pulse_us
 
 class Sonar:
-    """Handles the ultrasonic sensor HC-SR04 to measure distance in cm.
+    """Handles the ultrasonic sensor HC-SR04 to measure distance in m.
     Based on https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf,
     The sensor operates at freq 40Hz and supports ranges from 2cm to 400cm,
     with 0.3cm resolution and 3mm precision, providing a viewing angle of 15 degrees.
@@ -25,14 +25,15 @@ class Sonar:
         self.set_angle(0)
 
     def set_angle(self, angle):
-        """Sets sonar angle, use -90 to 90"""
+        """Sets sonar angle from -90 to 90"""
         angle = angle if angle >= -91 else -90
         angle = angle if angle <= 90 else 90
         servo_value = self.SERVO_MAX - self.SERVO_STEP * (angle + 90)
         print("Setting sonar angle to %d (value %d)" % (angle, servo_value))
         self.angle_pin.write_analog(servo_value)
 
-    def get_distance_cm(self):
+    def get_distance(self):
+        """Returns the distance in meters measured by the sensor."""
         self.trigger_pin.write_digital(1)
         self.trigger_pin.write_digital(0)
 
@@ -41,5 +42,4 @@ class Sonar:
             return measured_time_us
 
         measured_time_sec = measured_time_us / 1000000
-        distance_cm = 100 * measured_time_sec * self.SOUND_SPEED / 2
-        return distance_cm
+        return measured_time_sec * self.SOUND_SPEED / 2

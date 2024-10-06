@@ -51,10 +51,22 @@ class Wheel:
         if self.distance_start_time_us == 0:
             self.distance_start_time_us = ticks_us()
 
-    def move_pwm_for_distance(self, speed_pwm, distance_cm):
-        """Moves the wheel forward using given PWM speed for given distance in cm."""
-        ticks_for_distance = int(distance_cm * self.encoder.get_ticks_per_cm())
+    def move_pwm_for_distance(self, speed_pwm, distance):
+        """Moves the wheel forward using given PWM speed for given distance in meters."""
+        ticks_for_distance = int(distance * self.encoder.get_ticks_per_m())
         self.move_pwm_for_ticks(speed_pwm, ticks_for_distance)
+
+    def move_radsec_for_distance(self, speed_radsec, distance):
+        """Moves the wheel forward using given m/s speed for given distance in meters."""
+        speed_pwm = self.radsec2pwm(speed_radsec)
+        distance_ticks = int(distance * self.encoder.get_ticks_per_m())
+        return speed_pwm, distance_ticks
+
+    def move_msec_for_distance(self, speed_msec, distance):
+        """Moves the wheel forward using given m/s speed for given distance in meters."""
+        speed_pwm = self.msec2pwm(speed_msec)
+        distance_ticks = int(distance * self.encoder.get_ticks_per_m())
+        return speed_pwm, distance_ticks
 
     def set_speed_pwm(self, speed_pwm):
         """Sets the wheel PWM speed (and direction). Does not affect the remaining
@@ -81,36 +93,27 @@ class Wheel:
         """Returns the current PWM speed of the wheel."""
         return self.speed_pwm
 
-    def get_speed_cm_per_sec(self):
+    def get_speed_msec(self):
         """Returns the current speed of the wheel."""
-        return self.encoder.get_speed_cm_per_sec()
+        return self.encoder.get_speed_msec()
 
-    def get_speed_radians_per_sec(self):
+    def get_speed_radsec(self):
         """Returns the current speed of the wheel in radians per second."""
-        return self.encoder.get_speed_radians_per_sec()
+        return self.encoder.get_speed_radsec()
 
-    def rad_per_sec_to_pwm_speed(self, rad_per_sec):
+    def radsec2pwm(self, radsec):
         """Returns the PWM speed for the given rad/s speed.
         We use the multiplier and shift values to calculate the PWM speed using formula:
         rad_per_sec = pwm * multiplier + shift, for us: pwm = (rad_per_sec - shift) / multiplier."""
         if self.pwm_multiplier == 0:
             print("error: wheel %s pwm_multiplier is 0" % self.name)
             return 0
-        return int((rad_per_sec - self.pwm_shift) / self.pwm_multiplier)
+        return int((radsec - self.pwm_shift) / self.pwm_multiplier)
 
-    def cm_per_sec_to_pwm_speed(self, cm_per_sec):
-        """Returns the PWM speed for the given cm/s speed.
-        We just scan the existing table to find the closest speed instead
-        of creating a reverse table due to the lack of memory."""
-        rad_per_sec = self.encoder.cm_to_radians(cm_per_sec)
-        return self.rad_per_sec_to_pwm_speed(rad_per_sec)
-
-    def get_pwm_ticks_for_distance_using_cm_per_sec(self, speed_cm_per_sec, distance_cm):
-        """Moves the wheel forward using given cm/s speed for given distance in cm.
-        Please note: this method can be used just if the wheel has been calibrated."""
-        speed_pwm = self.cm_per_sec_to_pwm_speed(speed_cm_per_sec)
-        distance_ticks = int(distance_cm * self.encoder.get_ticks_per_cm())
-        return speed_pwm, distance_ticks
+    def msec2pwm(self, msec):
+        """Returns the PWM speed for the given m/s speed."""
+        rad_per_sec = self.encoder.m2rad(msec)
+        return self.radsec2pwm(rad_per_sec)
 
     def stop(self):
         """Stops the wheel immediately."""
