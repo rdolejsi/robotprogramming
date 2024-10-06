@@ -5,4 +5,4 @@ if [ "$1" == "-u" ]; then
   CLEAN=""
   BUILD=""
 fi
-./gradlew -Pmini -Pmain=main_sonar.py -Pexclude=wheel.*,light.* $CLEAN $BUILD upload
+./gradlew -Pmini -Pmain=main_calibration.py -Pexclude=light.*,sonar.* $CLEAN $BUILD upload
