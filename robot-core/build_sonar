@@ -1,0 +1,2 @@
+#!/bin/bash
+./gradlew -Pmini -Pmain=main_sonar.py -Pexclude=wheel.*,light.* clean build upload
