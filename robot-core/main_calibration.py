@@ -9,12 +9,14 @@ if __name__ == "__main__":
 
     try:
         if __run__ == "__calibration_approx__":
+            print("Approximate calibration running..")
             for wheel in [wheels.left, wheels.right]:
                 c = WheelCalibrator(wheel=wheel)
                 c.gather_pwm_to_real_speed_table_approx()
                 c.calibration_table_to_csv()
 
         if __run__ == "__calibration_full__":
+            print("Full calibration running..")
             for wheel in [wheels.left, wheels.right]:
                 c = WheelCalibrator(wheel=wheel)
                 c.gather_pwm_to_real_speed_table_full()

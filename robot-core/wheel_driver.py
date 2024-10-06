@@ -11,8 +11,8 @@ class WheelDriver:
     I2C_ADDRESS = 0x70
 
     def __init__(self,
-                 left_pwm_min=60, left_pwm_max=255, left_pwm_multiplier=0, left_pwm_shift=0,
-                 right_pwm_min=60, right_pwm_max=255, right_pwm_multiplier=0, right_pwm_shift=0):
+                 left_pwm_min=50, left_pwm_max=255, left_pwm_multiplier=0, left_pwm_shift=0,
+                 right_pwm_min=50, right_pwm_max=255, right_pwm_multiplier=0, right_pwm_shift=0):
         """Initializes the wheel driver."""
         i2c.init(freq=100000)
         i2c.write(self.I2C_ADDRESS, b"\x00\x01")
