@@ -1,11 +1,12 @@
-from wheel_driver import WheelDriver
+from system import System
 from wheel_calibrator import WheelCalibrator
+from wheel_driver import WheelDriver
 
 if __name__ == "__main__":
     __run__ = "__calibration_approx__"
     # __run__ = "__calibration_full__"
 
-    wheels = WheelDriver()
+    wheels = WheelDriver(system=System())
 
     try:
         if __run__ == "__calibration_approx__":

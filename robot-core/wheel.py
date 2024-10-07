@@ -1,8 +1,7 @@
 from utime import ticks_us, ticks_diff
 
-from microbit import i2c
-
 from wheel_encoder import WheelEncoder
+from system import System
 
 
 class Wheel:
@@ -10,11 +9,11 @@ class Wheel:
     with given (variable) speed and stop immediately or conditionally
     based on distance and time."""
 
-    def __init__(self, name, i2c_address, motor_fwd_cmd, motor_rwd_cmd, sensor_pin,
+    def __init__(self, system: System, name, motor_fwd_cmd, motor_rwd_cmd, sensor_pin,
                  pwm_min=60, pwm_max=255, pwm_multiplier=0, pwm_shift=0):
         """Initializes the wheel."""
+        self.system = system
         self.name = name
-        self.i2c_address = i2c_address
         self.motor_fwd_cmd = motor_fwd_cmd
         self.motor_rwd_cmd = motor_rwd_cmd
         self.distance_remain_ticks = -1
@@ -71,8 +70,8 @@ class Wheel:
         if speed_pwm == 0:
             if self.speed_pwm != 0:
                 # print("Stopping %s wheel" % self.name)
-                i2c.write(self.i2c_address, bytes([self.motor_fwd_cmd, 0]))
-                i2c.write(self.i2c_address, bytes([self.motor_rwd_cmd, 0]))
+                self.system.i2c_write(bytes([self.motor_fwd_cmd, 0]))
+                self.system.i2c_write(bytes([self.motor_rwd_cmd, 0]))
                 self.speed_pwm = 0
             return
         speed_pwm = int(max(-255, min(255, speed_pwm)))
@@ -84,10 +83,10 @@ class Wheel:
             motor_reset_cmd = (self.motor_rwd_cmd
                                if speed_pwm >= 0 else self.motor_fwd_cmd)
             # print("Changing %s wheel direction" % self.name)
-            i2c.write(self.i2c_address, bytes([motor_reset_cmd, 0]))
+            self.system.i2c_write(bytes([motor_reset_cmd, 0]))
         motor_set_cmd = self.motor_fwd_cmd if speed_pwm > 0 else self.motor_rwd_cmd
         print("Setting %s wheel speed_pwm %d" % (self.name, speed_pwm))
-        i2c.write(self.i2c_address, bytes([motor_set_cmd, abs(speed_pwm)]))
+        self.system.i2c_write(bytes([motor_set_cmd, abs(speed_pwm)]))
         self.speed_pwm = speed_pwm
 
     def radsec2pwm(self, radsec):

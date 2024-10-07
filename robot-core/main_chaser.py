@@ -2,6 +2,7 @@ from microbit import button_a
 from utime import ticks_us, ticks_diff
 
 from sonar import Sonar
+from system import System
 from wheel_driver import WheelDriver
 
 if __name__ == "__main__":
@@ -28,9 +29,12 @@ if __name__ == "__main__":
     ROBOT_MODE_SCAN = "scan"
     ROBOT_MODE_TURN = "turn"
 
-    wheels = WheelDriver(left_pwm_min=60, left_pwm_multiplier=0.08944848, left_pwm_shift=-2.722451,
-                         right_pwm_min=60, right_pwm_multiplier=0.08349663, right_pwm_shift=-2.0864)
-    sonar = Sonar()
+    wheels = WheelDriver(
+        system=System(),
+        left_pwm_min=60, left_pwm_multiplier=0.08944848, left_pwm_shift=-2.722451,
+        right_pwm_min=60, right_pwm_multiplier=0.08349663, right_pwm_shift=-2.0864
+    )
+    sonar = Sonar(scan_range_max=DISTANCE_MAX)
     try:
         # Calculate the constants for radsec speed dependency on the distance to ensure
         # the robot won't go fast when the distance is small.
