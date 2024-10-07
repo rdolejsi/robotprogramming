@@ -2,11 +2,15 @@ from microbit import button_a
 from utime import ticks_us, ticks_diff
 
 from sonar import Sonar
+from system import System
 from wheel_driver import WheelDriver
 
 if __name__ == "__main__":
-    wheels = WheelDriver(left_pwm_min=60, left_pwm_multiplier=0.08752789, left_pwm_shift=-2.150176,
-                         right_pwm_min=60, right_pwm_multiplier=0.08356924, right_pwm_shift=-2.03894)
+    wheels = WheelDriver(
+        system=System(),
+        left_pwm_min=60, left_pwm_multiplier=0.08752789, left_pwm_shift=-2.150176,
+        right_pwm_min=60, right_pwm_multiplier=0.08356924, right_pwm_shift=-2.03894
+    )
     sonar = Sonar()
     try:
         # Tries to maintain the robot around 20 cm in front of an obstacle.

@@ -1,11 +1,12 @@
 from utime import ticks_us, ticks_diff
 
+from system import System
 from wheel_driver import WheelDriver
 
 if __name__ == "__main__":
     __run__ = "__wheel_test__"
 
-    wheels = WheelDriver()
+    wheels = WheelDriver(system=System())
 
     try:
         if __run__ == "__wheel_test__":
