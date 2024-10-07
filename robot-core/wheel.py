@@ -115,10 +115,10 @@ class Wheel:
     def stop_on_no_work(self):
         """Stops the wheel if the remaining distance in ticks or time is reached."""
         stop_due_to_ticks = True
-        if self.distance_remain_ticks > 0:
+        if self.distance_remain_ticks != 0:
             stop_due_to_ticks = False
         stop_due_to_time = True
-        if self.distance_req_time_us > 0:
+        if self.distance_req_time_us >= 0:
             time_delta = ticks_diff(ticks_us(), self.distance_start_time_us)
             if time_delta < self.distance_req_time_us:
                 stop_due_to_time = False
