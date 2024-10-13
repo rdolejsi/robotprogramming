@@ -1,40 +1,44 @@
 from microbit import i2c, pin2
 
-
 class System:
     I2C_ADDRESS = 0x70
     I2C_FREQ = 100_000
     I2C_SENSOR_DEVICE = 0x38
 
-    SENSOR_DATA_LINE_LEFT = 0x80
-    SENSOR_DATA_LINE_CENTER = 0x40
-    SENSOR_DATA_LINE_RIGHT = 0x40
-    SENSOR_DATA_IR_LEFT = 0x20
-    SENSOR_DATA_IR_RIGHT = 0x10
+    MASK_LINE_LEFT = 0x04
+    MASK_LINE_CENTER = 0x08
+    MASK_LINE_RIGHT = 0x10
+    MASK_IR_LEFT = 0x20
+    MASK_IR_RIGHT = 0x40
 
     def __init__(self, i2c_freq=I2C_FREQ, voltage_pin=pin2):
         self.voltage_pin = voltage_pin
         i2c.init(freq=i2c_freq)
 
+    def bit_not(self, n, numbits=8):
+        return (1 << numbits) - 1 - n
+
     def i2c_write(self, data):
         i2c.write(self.I2C_ADDRESS, data)
 
+    def i2c_read_sensors(self):
+        """Returns the current sensor data byte."""
+        return i2c.read(self.I2C_SENSOR_DEVICE, 1)[0]
+
     def get_line_sensors(self):
-        """Returns the current state of the line sensors (left, center, right)."""
-        data = i2c.read(self.I2C_SENSOR_DEVICE, 1)
-        return (
-            bool(data[0] & self.SENSOR_DATA_LINE_LEFT),
-            bool(data[0] & self.SENSOR_DATA_LINE_CENTER),
-            bool(data[0] & self.SENSOR_DATA_LINE_RIGHT)
-        )
+        """Checks if line sensors (left, center, right) detected a line (true if line present)."""
+        data = self.i2c_read_sensors()
+        l = bool(data & self.MASK_LINE_LEFT)
+        c = bool(data & self.MASK_LINE_CENTER)
+        r = bool(data & self.MASK_LINE_RIGHT)
+        return l, c, r
 
     def get_ir_sensors(self):
-        """Returns the current state of the IR sensors (left, right)."""
-        data = i2c.read(self.I2C_SENSOR_DEVICE, 1)
-        return (
-            bool(data[0] & self.SENSOR_DATA_IR_LEFT),
-            bool(data[0] & self.SENSOR_DATA_IR_RIGHT)
-        )
+        """Checks if IR sensors (left, right) detected an obstacle (true if obstacle present)."""
+        data = self.i2c_read_sensors()
+        l = bool(data & self.MASK_IR_LEFT)
+        r = bool(data & self.MASK_IR_RIGHT)
+        return not l, not r
 
     def get_supply_voltage(self):
         """Returns the current supply voltage of the robot."""
