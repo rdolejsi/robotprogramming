@@ -12,6 +12,17 @@ class System:
     MASK_IR_LEFT = 0x20
     MASK_IR_RIGHT = 0x40
 
+    DRIVE_MODE_PICTOGRAMS = {
+        ' ': [0b000, 0b000, 0b000],
+        'T': [0b000, 0b111, 0b010],
+        'Y': [0b101, 0b010, 0b010],
+        '+': [0b010, 0b111, 0b010],
+        '-': [0b000, 0b111, 0b000],
+        '|': [0b010, 0b010, 0b010],
+        '/': [0b000, 0b011, 0b010],
+        '\\': [0b000, 0b110, 0b010],
+    }
+
     def __init__(self, i2c_freq=I2C_FREQ, voltage_pin=pin2):
         self.voltage_pin = voltage_pin
         i2c.init(freq=i2c_freq)
@@ -48,6 +59,32 @@ class System:
         """Sets a label on the robot display (prints in log, displays the first letter on the screen)."""
         display.show(label[0])
         print("Label: %s" % label)
+
+    @staticmethod
+    def display_sensors(ll, lc, lr, il, ir, y=4, lb=9, ib=5):
+        """Displays the sensors in top line of the display as pixels for each sensor.
+        Line sensors (left, center, right) are far left, center, far right, lb is line brightness 0-9, default 9.
+        IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""
+        display.set_pixel(4, y, lb if ll else 0)
+        display.set_pixel(2, y, lb if lc else 0)
+        display.set_pixel(0, y, lb if lr else 0)
+        display.set_pixel(3, y, ib if il else 0)
+        display.set_pixel(1, y, ib if ir else 0)
+
+    @staticmethod
+    def display_drive_mode(mode):
+        """Displays the detected drive mode in the lower left corner (3x3 pixels) depicting the current situation
+        we are dealing with when driving on the line. Supported lines (other chars clear the area):
+        T/Y/+ - intersections, | - straight line, / - right turn, \ - left turn."""
+        lines = System.DRIVE_MODE_PICTOGRAMS[mode if mode in System.DRIVE_MODE_PICTOGRAMS else ' ']
+        System.display_bitmap(0, 2, 3, lines)
+
+    @staticmethod
+    def display_bitmap(x_pos: int, y_pos: int, width: int, lines: list[int]):
+        """Displays the bitmap on the display (0x0 = top left, max 5x5). Bitwise, each line int is right-aligned."""
+        for y in range(len(lines)):
+            for x in range(width):
+                display.set_pixel(4 - (x_pos + x), 4 - (y_pos + y), 9 if lines[y] & (1 << x) else 0)
 
     @staticmethod
     def display_clear():
