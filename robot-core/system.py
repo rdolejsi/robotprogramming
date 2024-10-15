@@ -1,4 +1,5 @@
-from microbit import i2c, pin2
+from microbit import i2c, pin2, display
+
 
 class System:
     I2C_ADDRESS = 0x70
@@ -15,9 +16,6 @@ class System:
         self.voltage_pin = voltage_pin
         i2c.init(freq=i2c_freq)
 
-    def bit_not(self, n, numbits=8):
-        return (1 << numbits) - 1 - n
-
     def i2c_write(self, data):
         i2c.write(self.I2C_ADDRESS, data)
 
@@ -25,20 +23,16 @@ class System:
         """Returns the current sensor data byte."""
         return i2c.read(self.I2C_SENSOR_DEVICE, 1)[0]
 
-    def get_line_sensors(self):
-        """Checks if line sensors (left, center, right) detected a line (true if line present)."""
+    def get_sensors(self):
+        """Checks if line sensors (left, center, right, ) detected a line (true if line is present)
+        or obstacle sensors (, left, right) detect an obstacle (true if [white] reflection is present)."""
         data = self.i2c_read_sensors()
-        l = bool(data & self.MASK_LINE_LEFT)
-        c = bool(data & self.MASK_LINE_CENTER)
-        r = bool(data & self.MASK_LINE_RIGHT)
-        return l, c, r
-
-    def get_ir_sensors(self):
-        """Checks if IR sensors (left, right) detected an obstacle (true if obstacle present)."""
-        data = self.i2c_read_sensors()
-        l = bool(data & self.MASK_IR_LEFT)
-        r = bool(data & self.MASK_IR_RIGHT)
-        return not l, not r
+        ll = bool(data & self.MASK_LINE_LEFT)
+        lc = bool(data & self.MASK_LINE_CENTER)
+        lr = bool(data & self.MASK_LINE_RIGHT)
+        li = bool(data & self.MASK_IR_LEFT)
+        ri = bool(data & self.MASK_IR_RIGHT)
+        return ll, lc, lr, not li, not ri
 
     def get_supply_voltage(self):
         """Returns the current supply voltage of the robot."""
@@ -48,3 +42,25 @@ class System:
         # Multiply measured voltage by voltage divider ratio to calculate actual voltage
         # (10 kOhm + 5,6 kOhm) / 5,6 kOhm [(R1 + R2) / R2, Voltage divider ratio]
         return voltage * 2.7857142
+
+    @staticmethod
+    def display_text(label):
+        """Sets a label on the robot display (prints in log, displays the first letter on the screen)."""
+        display.show(label[0])
+        print("Label: %s" % label)
+
+    @staticmethod
+    def display_clear():
+        """Clears the display."""
+        display.clear()
+
+    @staticmethod
+    def display_on():
+        """Enables the display."""
+        display.on()
+        display.clear()
+
+    @staticmethod
+    def display_off():
+        """Disables the display."""
+        display.off()

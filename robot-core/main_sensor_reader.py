@@ -8,6 +8,7 @@ if __name__ == "__main__":
     SPEED = 0.20
 
     system = System()
+    system.display_on()
     try:
         info_cycle_length = 1_000_000
         info_cycle_start = ticks_us()
@@ -16,11 +17,10 @@ if __name__ == "__main__":
             time_now = ticks_us()
             if ticks_diff(time_now, info_cycle_start) > info_cycle_length:
                 info_cycle_start = time_now
-                l, c, r = system.get_line_sensors()
-                li, ri = system.get_ir_sensors()
+                l, c, r, li, ri = system.get_sensors()
                 raw = system.i2c_read_sensors()
-
                 print("Line(left=%s, center=%s, right=%s), Obstacle(left=%s, right=%s), raw data=%x (%s)" %
                       (l, c, r, li, ri, raw, bin(raw)))
     finally:
+        system.display_off()
         print("Finished")
