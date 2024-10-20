@@ -1,0 +1,8 @@
+#!/bin/bash
+CLEAN="clean"
+BUILD="build"
+if [ "$1" == "-u" ]; then
+  CLEAN=""
+  BUILD=""
+fi
+./gradlew -Pmini -Psudo -Pmain=main_line_tracker.py -Pexclude=light.*,sonar.*,wheel_calibrator.* $CLEAN $BUILD upload
