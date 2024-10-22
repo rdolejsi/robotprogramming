@@ -6,8 +6,9 @@ from wheel_driver import WheelDriver
 
 
 class Action:
-    def __init__(self, name, while_sensor, until_sensor):
+    def __init__(self, name, symbol, while_sensor, until_sensor):
         self.name = name
+        self.symbol = symbol
         self.while_sensor = while_sensor
         self.until_sensor = until_sensor
 
@@ -28,14 +29,14 @@ class State:
 # Actions of the robot
 ACTIONS = dict(
     #  waits with wheels.stop() for button to be pressed to start moving
-    START=Action("Start", -1, -1),
+    START=Action("Start", 's', -1, -1),
     # moves forward, no rotation
-    FWD=Action("Fwd", 0b010, -1),
-    #  moves forward with slight turn from the left to right (left sensor triggered)
-    FWD_L=Action("Fwd-L", 0b100, 0b010),
-    #  moves forward with slight turn from the right to left (right sensor triggered)
-    FWD_R=Action("Fwd-R", 0b001, 0b010),
-    STOP=Action("Stop", -1, -1),  # stops the robot
+    FWD=Action("Fwd", '|', 0b010, -1),
+    #  moves forward with slight turn from the left to right (left sensor triggered, symbol for turning right)
+    FWD_L=Action("Fwd-L", '/', 0b100, 0b010),
+    #  moves forward with slight turn from the right to left (right sensor triggered, symbol for turning left)
+    FWD_R=Action("Fwd-R", '\\', 0b001, 0b010),
+    STOP=Action("Stop", '.', -1, -1),  # stops the robot
 )
 
 # States of the robot
@@ -46,11 +47,11 @@ ACTIONS = dict(
 # - supported transitions to other states
 STATES = dict(
     #  waits with wheels.stop() for button to be pressed to start moving
-    START=State("Start", '.', [ACTIONS["START"]]),
+    START=State("Start", 's', [ACTIONS["START"]]),
     #  follows the line
     LINE=State("Line", '|', [ACTIONS["FWD"], ACTIONS["FWD_L"], ACTIONS["FWD_R"]]),
     #  stops the robot
-    STOP=State("stop", 's', [ACTIONS["STOP"]]),
+    STOP=State("stop", '.', [ACTIONS["STOP"]]),
     #  error state
     ERROR=State("error", 'x', [ACTIONS["STOP"]]),
 )
@@ -67,7 +68,7 @@ def transition_to_state(state_now, action_now, state):
     """Transitions to state, a one-liner helper for main code."""
     state_new = STATES[state]
     action_new = state_new.actions[0]
-    system.display_drive_mode(state_new.symbol)
+    system.display_drive_mode(action_new.symbol)
     print("Transitioning state %s (action %s) to state %s (action %s)" % (state_now, action_now, state_new, action_new))
     return state_new, action_new, 0
 
@@ -80,6 +81,7 @@ def transition_state_action(state, action_now, lcr):
     for action in state.actions:
         if action.while_sensor == lcr:
             print("Transitioning state %s action %s to %s" % (state, action_now, action))
+            system.display_drive_mode(action.symbol)
             return state, action, action_idx
         action_idx += 1
     return state, action_now, action_idx
@@ -90,33 +92,35 @@ if __name__ == "__main__":
     system = System()
     wheels = WheelDriver(
         system=system,
-        left_pwm_min=80, left_pwm_multiplier=0.08944848, left_pwm_shift=-2.722451,
-        right_pwm_min=80, right_pwm_multiplier=0.08349663, right_pwm_shift=-2.0864
+        left_pwm_min=80, left_pwm_multiplier=0.09, left_pwm_shift=-2.5,
+        right_pwm_min=80, right_pwm_multiplier=0.09, right_pwm_shift=-2.5
     )
     wheels.stop()
 
     # Well working configurations:
-    # Lenient slow:
-    # tolerance = 45, fwd_speed = 6, losing_start = 1, increment_per_cycle = 20, max = start * 20
-    # Aggressive slow:
-    # tolerance = 45, fwd_speed = 6, losing_start = 3, increment_per_cycle = 15, max = start * 7
-    # Recorded:
-    # tolerance = 45, fwd_speed = 9, losing_start = 2, increment_per_cycle = 4, max = start * 8
+    # Lenient slow (tolerance 45/2):
+    # fwd_speed = 6, side_arc_min = 1, side_arc_inc = 20, side_arc_max = 20
+    # Aggressive slow (tolerance 45/2):
+    # fwd_speed = 6, side_arc_min = 3, side_arc_inc = 15, side_arc_max = 21
+    # Recorded (tolerance 45/2):
+    # fwd_speed = 9, side_speed_dec = 3, side_speed_min = 4.5, side_arc_min = 2, side_arc_inc = 4, side_arc_max = 16
+    # Slight speedup (tolerance 45/2):
+    # fwd_speed = 10, side_speed_dec = 4, side_speed_min = 4, side_arc_min = 3, side_arc_inc = 6, side_arc_max = 21
 
     # base forward speed (rad)
-    forward_speed = 9
+    fwd_speed = 10
     # how much to decrement each cycle when on side sensor (too low = lazy reaction)
-    side_speed_dec_per_cycle = 3
+    side_speed_dec = 4
     # the minimum rotation speed to maintain to not go too low
     # and unnecessarily slow down turning (it turns no matter what as long as rotation speeds are correct)
-    side_speed_min = forward_speed * 0.5
-    # starting rotation (rad) when side sensor picks up the line instead of center one
-    side_rotation_init = 2
-    # how fast we'll be increasing rotation speed each cycle we are out of center
+    side_speed_min = 4
+    # starting arc speed (rotation) when side sensor picks up the line instead of center one
+    side_arc_min = 3
+    # how fast we'll be increasing arc speed each cycle we are out of center
     # this continues even if we are out of side sensor due to tolerance cycles (see below)
-    side_rotation_inc_per_cycle = 6
-    # maximum rotation we can perform (to not get too crazy and take our time when turning)
-    side_rotation_max = side_rotation_init * 8
+    side_arc_inc = 6
+    # maximum arc speed we can perform (to not get too crazy and take our time when turning)
+    side_arc_max = 21
 
     # tolerance before declaring we're out of line (time-dependent)
     # (if turning too slow, we might not catch the line again if too low)
@@ -128,7 +132,7 @@ if __name__ == "__main__":
     action_idx = 0
     action = state.actions[action_idx]
     system.display_on()
-    system.display_drive_mode(state.symbol)
+    system.display_drive_mode(action.symbol)
     out_of_state_cycle = 0
     line_losing_cycle = 0
 
@@ -178,33 +182,25 @@ if __name__ == "__main__":
                     else:
                         state, action, action_idx = transition_state_action(state, action, lcr)
                     if action == ACTIONS["FWD"]:
-                        print("FWD, rad %s" % forward_speed)
-                        wheels.move(speed_rad=forward_speed, rotation_rad=0)
+                        print("FWD, rad %s" % fwd_speed)
+                        wheels.move(speed_rad=fwd_speed, rotation_rad=0)
+                        if line_losing_cycle != 1:
+                            system.display_speed(fwd_speed, fwd_speed)
                         line_losing_cycle = 1  # set to 1 to immediately start with the first increment if we lose line
-                    elif action == ACTIONS["FWD_L"]:
+                    elif action == ACTIONS["FWD_L"] or action == ACTIONS["FWD_R"]:
                         line_losing_cycle += 1
-                        rotation_rad = side_rotation_init + side_rotation_inc_per_cycle * line_losing_cycle
-                        rotation_rad = min(rotation_rad, side_rotation_max)
-                        align_speed = forward_speed - line_losing_cycle * side_speed_dec_per_cycle
+                        rotation_rad = side_arc_min + side_arc_inc * line_losing_cycle
+                        rotation_rad = min(rotation_rad, side_arc_max)
+                        align_speed = fwd_speed - line_losing_cycle * side_speed_dec
                         align_speed = max(align_speed, side_speed_min)
-                        wheels.move(speed_rad=align_speed, rotation_rad=rotation_rad)
+                        direction = 1 if action == ACTIONS["FWD_L"] else -1
+                        wheels.move(speed_rad=align_speed, rotation_rad=rotation_rad * direction)
+                        system.display_speed(align_speed, fwd_speed)
                         print(
-                            "FWD_L, rotation_rad %d, init %s + inc_per_cycle %s * cycle %s" %
-                            (rotation_rad, side_rotation_init, side_rotation_inc_per_cycle, line_losing_cycle))
-                    elif action == ACTIONS["FWD_R"]:
-                        line_losing_cycle += 1
-                        rotation_rad = side_rotation_init + side_rotation_inc_per_cycle * line_losing_cycle
-                        rotation_rad = min(rotation_rad, side_rotation_max)
-                        print(
-                            "FWD_R, rotation_rad %d, init %s + inc_per_cycle %s * cycle %s" %
-                            (rotation_rad, side_rotation_init, side_rotation_inc_per_cycle, line_losing_cycle))
-                        align_speed = forward_speed - line_losing_cycle * side_speed_dec_per_cycle
-                        align_speed = max(align_speed, side_speed_min)
-                        wheels.move(speed_rad=align_speed, rotation_rad=-rotation_rad)
+                            "%s, rotation_rad %d, init %s + inc_per_cycle %s * cycle %s" %
+                            (action, rotation_rad, side_arc_min, side_arc_inc, line_losing_cycle))
                     elif action == ACTIONS["STOP"]:
                         wheels.stop()
-
-                # transition to another action while waiting to reach until_sensor (i.e., during turning)
 
                 else:
                     print("Out of state exceeded %d cycles tolerance" % line_cycle_tolerance)

@@ -14,15 +14,20 @@ class System:
 
     DRIVE_MODE_PICTOGRAMS = {
         ' ': [0b000, 0b000, 0b000],
-        'T': [0b000, 0b111, 0b010],
-        'Y': [0b101, 0b010, 0b010],
+        'TL': [0b000, 0b110, 0b010], # sharp turn to left
+        'TR': [0b000, 0b011, 0b010], # sharp turn to right
+        'IT': [0b000, 0b111, 0b010], # intersection left-right (T)
+        'IL': [0b010, 0b110, 0b010], # intersection left-straight (T to left)
+        'IR': [0b010, 0b011, 0b010], # intersection right-straight (T to right)
+        'Y': [0b101, 0b010, 0b010], # split in the road (Y)
         '+': [0b010, 0b111, 0b010],
         '-': [0b000, 0b111, 0b000],
-        '|': [0b010, 0b010, 0b010],
-        '/': [0b000, 0b011, 0b010],
-        '\\': [0b000, 0b110, 0b010],
+        '_': [0b000, 0b000, 0b111],
         '.': [0b000, 0b000, 0b010],
-        's': [0b010, 0b101, 0b010],
+        '|': [0b010, 0b010, 0b010],
+        '/': [0b001, 0b010, 0b100],
+        '\\': [0b100, 0b010, 0b001],
+        's': [0b000, 0b110, 0b011],
         'x': [0b101, 0b010, 0b101],
     }
 
@@ -81,6 +86,15 @@ class System:
         T/Y/+ - intersections, | - straight line, / - right turn, \ - left turn."""
         lines = System.DRIVE_MODE_PICTOGRAMS[mode if mode in System.DRIVE_MODE_PICTOGRAMS else ' ']
         System.display_bitmap(0, 2, 3, lines)
+
+    @staticmethod
+    def display_speed(speed_now, speed_max):
+        """Displays the current speed on the display (represented as a 3-pixel bar) on the right side of display."""
+        height = int(3 * speed_now / speed_max)
+        intensity = 3
+        display.set_pixel(0, 0, intensity if height >= 1 else 0)
+        display.set_pixel(0, 1, intensity if height >= 2 else 0)
+        display.set_pixel(0, 2, intensity if height >= 3 else 0)
 
     @staticmethod
     def display_bitmap(x_pos: int, y_pos: int, width: int, lines: list[int]):
