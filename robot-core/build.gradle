@@ -1,23 +1,45 @@
 /**
- * Builds minified merged Python main.py and uploads it to Micro:Bit using 'ufs'.
- * All major OSes should be supported.
+ * Builds minified merged Python main.py and uploads it to a Micro:Bit or CircuitPython device (Pico:Ed, ...).
+ * All major OSes are supported, the following python packages need to be installed:
+ * - for minification - python-minifier (command 'pyminify' on path)
+ * - for Micro:bit - microfs (command 'ufs' on path)
+ * - for CircuitPython - circup (command 'circup' on path) - for auto-loading library support (todo)
  *
  * Tasks:
  * clean     .. cleans build/ directory
  * mini      .. minifies all sources into build/mini/
  * buildMini .. builds the merged minified source into build/mini/main.py
  * build     .. builds the merged (non-minified) source into build/main.py + calls buildMini
- * upload    .. uploads merged main.py file of choice to Micro:Bit using ufs (see upload options below)
+ * upload    .. uploads merged main.py file of choice to the detected platform (see upload options below)
  *
  * Generic options:
  * -Pmain={file.py}           .. specifies main.py file (last during merging), optional (autodetected),
  *                               needed just when __main__ block is in multiple source files
+ * -Phw={file.py}             .. specifies hardware-specific classes, default: hw.py | system.py
+ * -Phwcp={file.py}           .. specifies CircuitPython-specific class, default: {hw}_cp.py or {hw}_ped.py
+ * -Phwmb={file.py}           .. specifies Micro:Bit-specific class, default: {hw}_mb.py or {hw}_mbit.py
  * -Pinclude={file1,file2,..} .. adds extra files outside of project dir (all *.py files in project are included automatically)
  * -Pexclude={file1,file2,..} .. removes files from the source file list
  *
+ * Multiple hardware implementations:
+ * When working with multiple platforms, -Phw, -Phwcp and -Phwmb properties will enable automatic class replacement
+ * based on the inserted device. The code is expected to just depend on base class defined in -Phw. During merging
+ * and minification, the base hardware class is kept with suffix *Base. It is expected the hardware-specific
+ * classes import and reference it as such in the original code while other classes just reference the original base
+ * class. The effect is that the specific hardware classes substitute it in the resulting code and none is the wiser.
+ * This way, the advanced editors will not have issues during programming, while we can have different implementation
+ * classes on resulting device, a bit like dependency injection.
+ *
  * Upload options:
- * -Pmini  .. uploads minified version
- * -Psudo  .. uses 'sudo ufs' instead od 'ufs' for upload (sometimes needed to override port ownership on Linux)
+ * -Pmini .. uploads minified version
+ * -Psudo .. uses supervisor permissions to operate (Unix/MacOS only, sometimes needed to gain port access on Linux for device uploads)
+ * -Pcp   .. CircuitPython (Pico:Ed, ..) - autodetected on Ubuntu, detection left to 'circup' otherwise
+ * -Pmb   .. Micro:Bit - fallback (default) option, uses 'ufs' and its port detection mechanism
+ *
+ * CircuitPython device environment variables (when defined, used for calling 'circup'):
+ * CP_PATH .. path to a mounted device (not needed for Ubuntu, but 'pmount' apt OS package needed if not mounted)
+ * CP_HOST .. CircuitPython host to contact in the form of (host}:{port}#{password} (*) - (todo)
+ *            (*) Each CP device supports access over Wifi, see https://docs.circuitpython.org/en/latest/docs/workflows.html
  *
  * Example build commands:
  *
@@ -32,22 +54,58 @@ import java.util.stream.Collectors
 import java.util.stream.Stream
 
 ext {
+    onWindows = System.getProperty("os.name").toLowerCase().contains("win")
     useSudo = project.hasProperty('sudo')
     useMini = project.hasProperty('mini')
+    cpPath = System.getenv('CP_PATH') != null ? System.getenv('CP_PATH') :
+            (!project.hasProperty('mb') ? detectCircuitPythonPath() : null)
+    cpHost = System.getenv('CP_HOST')
+    useCP = !project.hasProperty('mb') && (project.hasProperty('cp') || cpPath != null || cpHost != null)
+    useMB = project.hasProperty('mb') || !useCP
+    hwPrefixes = List.of('system', 'hardware', 'hw')
+    hwMBSuffixes = List.of('_mb', '_mbit')
+    hwCPSuffixes = List.of('_cp', '_ped')
+    hwType = useCP ? 'cp' : 'mb'
+    hwBase = project.hasProperty('hw') ? project.getProperty('hw') : (
+            hwPrefixes.stream()
+                    .map { prefix -> new File(projectDir, prefix + '.py') }
+                    .filter { f -> f.exists() }
+                    .findFirst().orElse(null)
+    )
+    hwClasses = hwBase == null ? List.of() :
+            Stream.concat(hwMBSuffixes.stream(), hwCPSuffixes.stream())
+                    .map(suffix -> new File(projectDir, hwBase.getName().replaceAll("\\.py\$", suffix + '.py')))
+                    .filter { f -> f.exists() }
+                    .collect(Collectors.toList())
+    hwClass = project.hasProperty('hw' + hwType) ? project.getProperty('hw' + hwType) : (
+            hwBase == null ? null :
+                    (useMB ? hwMBSuffixes : hwCPSuffixes).stream()
+                            .map(suffix -> new File(projectDir, hwBase.getName().replaceAll("\\.py\$", suffix + '.py')))
+                            .filter { f -> f.exists() }
+                            .findFirst().orElse(null)
+    )
     miniDir = "${buildDir}/mini"
     includedFiles = propertyCsvToFileList('include')
     excludedFiles = propertyCsvToFileList('exclude')
     mainFile = getMainFileName(includedFiles, excludedFiles)
     // we need all local *.py sources, but we will need to exclude the indicated ones
+    // if hardware-specific override is configured, we need to exclude hw classes not matching the correct one
     // we also need to exclude main.py (or whatever was specified as main) and put it at the very end explicitly
     sourceFiles = Stream.concat(
             Stream.concat(
                     includedFiles.stream(),
                     Arrays.stream(projectDir.listFiles())
                             .filter { f -> f.name.endsWith('.py') }
-            ).filter { f -> !f.equals(mainFile) && !excludedFiles.contains(f) },
+            )
+                    .filter { f -> !f.equals(mainFile) }
+                    .filter { f -> !excludedFiles.contains(f) }
+                    .filter { f -> hwClass == null || !hwClasses.contains(f) || f.equals(hwClass) },
             Stream.of(mainFile)
     ).toList()
+}
+
+if (hwBase != null && hwClass != null) {
+    logger.lifecycle("Enabling hardware-specific class replacement: suffix *Base added to ${hwBase.getName()}, real hardware in ${hwClass.getName()}")
 }
 
 task clean {
@@ -88,6 +146,11 @@ def mergeSource(BufferedWriter writer, File source, Set<String> imports, Map<Str
             if (header) {
                 if (line.startsWith("class") || line.startsWith("def") || line.startsWith("if")) {
                     header = false
+                    // if we are dealing with a hardware class base, we will be suffixing with Base
+                    // this will avoid conflict with actual inheriting implementation class
+                    if (source.getName().equals(hwBase.getName()) && line.startsWith("class")) {
+                        line = line.replaceAll(":\$", "Base:")
+                    }
                 } else if (line.startsWith("import")) {
                     line = line.replaceFirst("import\\s+", "")
                     imports.addAll(Arrays.asList(line.split(",\\s*")))
@@ -165,13 +228,45 @@ task upload {
     shouldRunAfter build
     doLast {
         def uploadFile = new File(useMini ? miniDir : buildDir, "main.py")
-        def cmd = useSudo ?
-                ['sudo', 'ufs', 'put', "${uploadFile}"] :
-                ['ufs', 'put', "${uploadFile}"]
-        logger.lifecycle("Uploading ${useSudo ? "(using sudo) " : ""}merged ${useMini ? "minified " : ""}${uploadFile}")
-        exec {
-            workingDir "${projectDir}"
-            commandLine = cmd
+        if (cpHost != null) {
+            throw new Exception("CP_HOST environment variable not supported yet")
+        }
+        if (!useMB) {
+            if (cpPath == null) {
+                cpPath = detectCircuitPythonPath()
+            }
+            useCP |= cpPath != null
+        }
+        if (useCP) {
+            if (cpPath == null) {
+                throw new Exception("CIRCUITPY device not found, please mount it or set CP_PATH environment variable")
+            }
+            def cmd = useSudo ?
+                    ['sudo', 'cp', "${uploadFile}", "${cpPath}/code.py"] :
+                    ['cp', "${uploadFile}", "${cpPath}/code.py"]
+            logger.lifecycle("Copying ${useSudo ? "(using sudo) " : ""}merged ${useMini ? "minified " : ""}${uploadFile} to CircuitPython device path ${cpPath}/code.py")
+            exec {
+                workingDir "${projectDir}"
+                commandLine = cmd
+            }
+            if (!onWindows) {
+                logger.lifecycle("Syncing CircuitPython device ..")
+                exec {
+                    workingDir "${projectDir}"
+                    commandLine = ['sync']
+                }
+            }
+        } else if (useMB) {
+            def cmd = useSudo ?
+                    ['sudo', 'ufs', 'put', "${uploadFile}"] :
+                    ['ufs', 'put', "${uploadFile}"]
+            logger.lifecycle("Uploading ${useSudo ? "(using sudo) " : ""}merged ${useMini ? "minified " : ""}${uploadFile} to Micro:Bit device")
+            exec {
+                workingDir "${projectDir}"
+                commandLine = cmd
+            }
+        } else {
+            throw new Exception("Unknown platform, please specify -Pcp or -Pmb")
         }
     }
 }
@@ -181,7 +276,7 @@ List<File> propertyCsvToFileList(String property) {
     if (project.hasProperty(property)) {
         List<String> patterns = Arrays.asList(project.getProperty(property).split(","))
         files.addAll(
-                Arrays.<File>stream(projectDir.listFiles())
+                Arrays.<File> stream(projectDir.listFiles())
                         .filter { f -> f.name.endsWith('.py') }
                         .filter { f -> patterns.stream().anyMatch { p -> f.name.matches(p) } }
                         .toList()
@@ -230,4 +325,41 @@ File getMainFileName(List<File> includedFiles, List<File> excludedFiles) {
         logger.lifecycle("Detected main code block in file ${mainFiles.getFirst()}")
         return mainFiles.getFirst()
     }
+}
+
+def getDiskMountPoint(String diskLabel) {
+    def out = new ByteArrayOutputStream()
+    exec {
+        workingDir "${projectDir}"
+        commandLine = ['df']
+        standardOutput = out
+    }
+    def line = out.toString().split("\n").stream().filter { it.contains(diskLabel) }.findFirst()
+    if (line.isEmpty()) {
+        return null
+    }
+    def mountPoint = line.get().replaceAll(".*\\s+", "")
+    logger.lifecycle("Detected disk ${diskLabel} mounted at ${mountPoint}")
+    return mountPoint
+}
+
+// for Unix-like systems we can use 'df' to check the possible location of CIRCUITPY
+def detectCircuitPythonPath() {
+    def cpPath = null
+    if (!onWindows) {
+        cpPath = getDiskMountPoint('CIRCUITPY')
+        if (cpPath == null) {
+            // if we still have nothing we can try to permissive-mount the disk by label (supported by Linux)
+            File cpDevFile = new File("/dev/disk/by-label/CIRCUITPY")
+            if (cpDevFile.exists()) {
+                logger.lifecycle("Detected CircuitPython device ${cpDevFile.getCanonicalPath()}, permissive-mounting ..")
+                exec {
+                    workingDir "${projectDir}"
+                    commandLine = ['pmount', cpDevFile.getCanonicalPath(), 'CIRCUITPY']
+                }
+                cpPath = getDiskMountPoint('CIRCUITPY')
+            }
+        }
+    }
+    return cpPath
 }
