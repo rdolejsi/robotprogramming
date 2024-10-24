@@ -1,10 +1,12 @@
-from microbit import i2c, pin2, display
-
-
 class System:
-    I2C_ADDRESS = 0x70
+    """System class for the robot core system interface,
+    with platform-specific implementations separate classes."""
+    SYS_MBIT = 0
+    SYS_PICO = 1
+
     I2C_FREQ = 100_000
     I2C_SENSOR_DEVICE = 0x38
+    I2C_MOTOR_DEVICE = 0x70
 
     MASK_LINE_LEFT = 0x04
     MASK_LINE_CENTER = 0x08
@@ -12,35 +14,51 @@ class System:
     MASK_IR_LEFT = 0x20
     MASK_IR_RIGHT = 0x40
 
-    DRIVE_MODE_PICTOGRAMS = {
-        ' ': [0b000, 0b000, 0b000],
-        'TL': [0b000, 0b110, 0b010], # sharp turn to left
-        'TR': [0b000, 0b011, 0b010], # sharp turn to right
-        'IT': [0b000, 0b111, 0b010], # intersection left-right (T)
-        'IL': [0b010, 0b110, 0b010], # intersection left-straight (T to left)
-        'IR': [0b010, 0b011, 0b010], # intersection right-straight (T to right)
-        'Y': [0b101, 0b010, 0b010], # split in the road (Y)
-        '+': [0b010, 0b111, 0b010],
-        '-': [0b000, 0b111, 0b000],
-        '_': [0b000, 0b000, 0b111],
-        '.': [0b000, 0b000, 0b010],
-        '|': [0b010, 0b010, 0b010],
-        '/': [0b001, 0b010, 0b100],
-        '\\': [0b100, 0b010, 0b001],
-        's': [0b000, 0b110, 0b011],
-        'x': [0b101, 0b010, 0b101],
-    }
+    SOUND_SPEED = 343  # m/s
 
-    def __init__(self, i2c_freq=I2C_FREQ, voltage_pin=pin2):
-        self.voltage_pin = voltage_pin
-        i2c.init(freq=i2c_freq)
+    def __init__(self):
+        pass
 
-    def i2c_write(self, data):
-        i2c.write(self.I2C_ADDRESS, data)
+    def get_system_type(self):
+        """Returns the system type."""
+        pass
+
+    def ticks_us(self):
+        """Returns the current time in microseconds."""
+        pass
+
+    def ticks_diff(self, ticks1, ticks2):
+        """Returns the difference between two time values in microseconds."""
+        pass
+
+    def sleep_us(self, us):
+        """Sleeps for the given time in microseconds."""
+        pass
+
+    def i2c_scan(self) -> list[int]:
+        """Scans the I2C bus for devices and returns a list of addresses."""
+        pass
+
+    def i2c_read(self, addr: int, n: int) -> bytes:
+        """Reads 'n' amount of data from the I2C device into a buffer."""
+        pass
+
+    def i2c_write(self, addr: int, buf: bytes):
+        """Writes data to the I2C device from a buffer."""
+        pass
+
+    def i2c_write_motor(self, buf: bytes):
+        """Writes data to the I2C motor device from a buffer."""
+        self.i2c_write(self.I2C_MOTOR_DEVICE, buf)
+
+    def i2c_init_motor(self):
+        """Initializes the I2C motor device."""
+        self.i2c_write_motor(b"\x00\x01")
+        self.i2c_write_motor(b"\xE8\xAA")
 
     def i2c_read_sensors(self):
         """Returns the current sensor data byte."""
-        return i2c.read(self.I2C_SENSOR_DEVICE, 1)[0]
+        return self.i2c_read(self.I2C_SENSOR_DEVICE, 1)[0]
 
     def get_sensors(self):
         """Checks if line sensors (left, center, right, ) detected a line (true if line is present)
@@ -53,68 +71,108 @@ class System:
         ri = bool(data & self.MASK_IR_RIGHT)
         return ll, lc, lr, not li, not ri
 
+    def pin_read_digital(self, pin):
+        """Reads the digital value of a pin."""
+        pass
+
+    def pin_write_digital(self, pin, value: int):
+        """Writes a digital value to the pin."""
+        pass
+
+    def set_sonar_angle_pwm(self, angle_pwm: int):
+        """Sets front sonar horizontal angle PWM value."""
+        pass
+
+    def trigger_sonar(self, value: int):
+        """Triggers front sonar."""
+        pass
+
+    def get_sonar_echo(self):
+        """Gets the front sonar echo."""
+        pass
+
+    def measure_sonar_echo_time(self) -> int:
+        """Measures the time it takes for the sonar echo to return."""
+        pass
+
+    def get_sonar_distance(self):
+        """Returns the distance in meters measured by the sonar."""
+        self.trigger_sonar(1)
+        self.trigger_sonar(0)
+
+        measured_time_us = self.measure_sonar_echo_time()
+        if measured_time_us < 0:
+            return measured_time_us
+
+        measured_time_sec = measured_time_us / 1_000_000
+        return measured_time_sec * self.SOUND_SPEED / 2
+
+    def get_encoder_pin_left(self):
+        """Returns the pin object for the left encoder."""
+        pass
+
+    def get_encoder_pin_right(self):
+        """Returns the pin object for the right encoder."""
+        pass
+
+    def get_adc_value(self) -> int:
+        """Returns the current ADC value of the robot (0 - 1023)."""
+        pass
+
     def get_supply_voltage(self):
         """Returns the current supply voltage of the robot."""
-        adc = self.voltage_pin.read_analog()  # ADC value 0 - 1023
+        adc = self.get_adc_value()  # ADC value 0 - 1023
         # Convert ADC value to volts: 3.3 V / 1024 (max. voltage at ADC pin / ADC resolution)
         voltage = 0.00322265625 * adc
         # Multiply measured voltage by voltage divider ratio to calculate actual voltage
         # (10 kOhm + 5,6 kOhm) / 5,6 kOhm [(R1 + R2) / R2, Voltage divider ratio]
         return voltage * 2.7857142
 
-    @staticmethod
-    def display_text(label):
-        """Sets a label on the robot display (prints in log, displays the first letter on the screen)."""
-        display.show(label[0])
-        print("Label: %s" % label)
+    def is_button_a_pressed(self):
+        """Returns whether button A is pressed."""
+        pass
 
-    @staticmethod
-    def display_sensors(ll, lc, lr, il, ir, y=4, lb=9, ib=5):
+    def is_button_b_pressed(self):
+        """Returns whether button B is pressed."""
+        pass
+
+    def display_text(self, label):
+        """Sets a label on the robot display (prints in log, displays the first letter on the screen)."""
+        pass
+
+    def display_sensors(self, ll, lc, lr, il, ir, y=4, lb=9, ib=5):
         """Displays the sensors in top line of the display as pixels for each sensor.
         Line sensors (left, center, right) are far left, center, far right, lb is line brightness 0-9, default 9.
         IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""
-        display.set_pixel(4, y, lb if ll else 0)
-        display.set_pixel(2, y, lb if lc else 0)
-        display.set_pixel(0, y, lb if lr else 0)
-        display.set_pixel(3, y, ib if il else 0)
-        display.set_pixel(1, y, ib if ir else 0)
+        pass
 
-    @staticmethod
-    def display_drive_mode(mode):
-        """Displays the detected drive mode in the lower left corner (3x3 pixels) depicting the current situation
-        we are dealing with when driving on the line. Supported lines (other chars clear the area):
-        T/Y/+ - intersections, | - straight line, / - right turn, \ - left turn."""
-        lines = System.DRIVE_MODE_PICTOGRAMS[mode if mode in System.DRIVE_MODE_PICTOGRAMS else ' ']
-        System.display_bitmap(0, 2, 3, lines)
+    def display_drive_mode(self, mode):
+        """Displays the detected drive mode depicting the current situation we are in now.
+        The form of the displaying of the mode is platform-dependent.
+        Variable mode refers to the pictogram displayed, see each implementation (they should be in sync)."""
+        pass
 
-    @staticmethod
-    def display_speed(speed_now, speed_max):
-        """Displays the current speed on the display (represented as a 3-pixel bar) on the right side of display."""
-        height = int(3 * speed_now / speed_max)
-        intensity = 3
-        display.set_pixel(0, 0, intensity if height >= 1 else 0)
-        display.set_pixel(0, 1, intensity if height >= 2 else 0)
-        display.set_pixel(0, 2, intensity if height >= 3 else 0)
+    def get_drive_mode_symbol_keys(self):
+        """Returns the keys of the drive mode symbols."""
+        pass
 
-    @staticmethod
-    def display_bitmap(x_pos: int, y_pos: int, width: int, lines: list[int]):
-        """Displays the bitmap on the display (0x0 = top left, max 5x5). Bitwise, each line int is right-aligned."""
-        for y in range(len(lines)):
-            for x in range(width):
-                display.set_pixel(4 - (x_pos + x), 4 - (y_pos + y), 9 if lines[y] & (1 << x) else 0)
+    def display_speed(self, speed_now, speed_max):
+        """Displays the current speed on the display. Position and form is platform-dependent."""
+        pass
 
-    @staticmethod
-    def display_clear():
+    def display_bitmap(self, x_pos: int, y_pos: int, width: int, lines: list[int]):
+        """Displays bitmap on display (0x0 = top left, max is platform-dependent: 5x5 on Micro:Bit, 27x7 Pico:Ed).
+        Bitwise, each line int is right-aligned."""
+        pass
+
+    def display_clear(self):
         """Clears the display."""
-        display.clear()
+        pass
 
-    @staticmethod
-    def display_on():
+    def display_on(self):
         """Enables the display."""
-        display.on()
-        display.clear()
+        pass
 
-    @staticmethod
-    def display_off():
+    def display_off(self):
         """Disables the display."""
-        display.off()
+        pass

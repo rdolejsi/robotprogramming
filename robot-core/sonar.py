@@ -1,6 +1,4 @@
-from machine import time_pulse_us
-from microbit import pin1, pin8, pin12
-from utime import ticks_us, ticks_diff
+from system import System
 
 
 class Sonar:
@@ -13,7 +11,6 @@ class Sonar:
     and the module will send out an 8 cycle burst of ultrasound at 40 kHz
     and raise its echo. The Echo Output Signal is an input TTL lever signal
     and the range in proportion to the duration of the echo signal."""
-    SOUND_SPEED = 343  # m/s
     SERVO_MIN = 20  # right
     SERVO_MAX = 128  # left
     SERVO_STEP = (SERVO_MAX - SERVO_MIN) / 180
@@ -25,12 +22,10 @@ class Sonar:
     # We need to find the object at least this many times before we accept it
     SCAN_DISTANCE_ACCEPTED_AFTER_FOUND_COUNT = 2
 
-    def __init__(self, trigger_pin=pin8, echo_pin=pin12, angle_pin=pin1, scan_range_max=0.5, scan_interval=125_000):
-        self.trigger_pin = trigger_pin
-        self.trigger_pin.write_digital(0)
-        self.echo_pin = echo_pin
-        self.echo_pin.read_digital()
-        self.angle_pin = angle_pin
+    def __init__(self, system: System, scan_range_max=0.5, scan_interval=125_000):
+        self.system = system
+        self.system.trigger_sonar(0)
+        self.system.get_sonar_echo()
         self.angle = 0
         self.set_angle(0)
         self.scan_mode = self.SCAN_NONE
@@ -48,20 +43,8 @@ class Sonar:
         angle = angle if angle <= 90 else 90
         servo_value = self.SERVO_MAX - self.SERVO_STEP * (angle + 90)
         print("Setting sonar angle to %d (value %d)" % (angle, servo_value))
-        self.angle_pin.write_analog(servo_value)
+        self.system.set_sonar_angle_pwm(servo_value)
         self.angle = angle
-
-    def get_distance(self):
-        """Returns the distance in meters measured by the sensor."""
-        self.trigger_pin.write_digital(1)
-        self.trigger_pin.write_digital(0)
-
-        measured_time_us = time_pulse_us(self.echo_pin, 1)
-        if measured_time_us < 0:
-            return measured_time_us
-
-        measured_time_sec = measured_time_us / 1_000_000
-        return measured_time_sec * self.SOUND_SPEED / 2
 
     def start_scan(self):
         """Starts the scanning mode."""
@@ -77,12 +60,16 @@ class Sonar:
         self.scan_mode = self.SCAN_NONE
         print("Scanning stopped")
 
+    def get_distance(self):
+        """Returns the distance in meters measured by the sonar."""
+        return self.system.get_sonar_distance()
+
     def update(self):
         """Updates itself based on the current scan mode and elapsed time."""
         if self.scan_mode == self.SCAN_NONE:
             return
-        time_now = ticks_us()
-        if self.scan_last_time != -1 and ticks_diff(time_now, self.scan_last_time) < self.scan_interval:
+        time_now = self.system.ticks_us()
+        if self.scan_last_time != -1 and self.system.ticks_diff(time_now, self.scan_last_time) < self.scan_interval:
             return
         self.scan_last_time = time_now
 

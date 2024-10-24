@@ -1,11 +1,11 @@
-from utime import ticks_us, ticks_diff
-
 from wheel import Wheel
+from system import System
 
 
 class WheelCalibrator:
-    def __init__(self, wheel: Wheel):
+    def __init__(self, system: System, wheel: Wheel):
         """Initializes the wheel calibrator."""
+        self.system = system
         self.wheel = wheel
         self.p2m2radsec = [0.0 for _ in range(wheel.pwm_min, wheel.pwm_max + 1)]
         self.pwm_min = 0
@@ -77,9 +77,9 @@ class WheelCalibrator:
     def gather_rad_msec_for_pwm(self, speed_pwm):
         """Moves the wheel forward using given PWM speed for half a second,
         returns the speed in rad/s and m/s."""
-        start_time = ticks_us()
+        start_time = self.system.ticks_us()
         self.wheel.move_pwm(speed_pwm)
-        while ticks_diff(ticks_us(), start_time) <= 500_000:
+        while self.system.ticks_diff(self.system.ticks_us(), start_time) <= 500_000:
             self.wheel.update()
         radsec = self.wheel.enc.speed_radsec
         msec = self.wheel.enc.speed_msec()

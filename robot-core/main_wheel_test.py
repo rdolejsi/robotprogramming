@@ -1,25 +1,24 @@
-from utime import ticks_us, ticks_diff
-
 from system import System
 from wheel_driver import WheelDriver
 
 if __name__ == "__main__":
     __run__ = "__wheel_test__"
 
-    wheels = WheelDriver(system=System())
+    system = System()
+    wheels = WheelDriver(system=system)
 
     try:
         if __run__ == "__wheel_test__":
             phase_length = 5000 * 1000
-            phase_start = ticks_us()
+            phase_start = system.ticks_us()
             phase_report_length = 250 * 1000
             phase_report_start = phase_start
             phase = "init"
             phases = ["forward", "backward", "stop"]
             while len(phases) > 0:
-                phase_diff = ticks_diff(ticks_us(), phase_report_start)
+                phase_diff = system.ticks_diff(system.ticks_us(), phase_report_start)
                 if phase_diff >= phase_report_length:
-                    phase_report_start = ticks_us()
+                    phase_report_start = system.ticks_us()
                     l_enc = wheels.left.enc
                     lv = l_enc.calc_value
                     lu = l_enc.calc_update_count
@@ -35,9 +34,9 @@ if __name__ == "__main__":
                     print(
                         "Wheel left %s<-%su: %.06f radsec, %.06f radsec_avg, %.06f msec, Wheel right %s<-%su: %.06f radsec, %.06f radsec_avg, %.06f msec" %
                         (lv, lu, l_radsec, l_radsec_a, l_msec, rv, ru, r_radsec, r_radsec_a, r_msec))
-                phase_diff = ticks_diff(ticks_us(), phase_start)
+                phase_diff = system.ticks_diff(system.ticks_us(), phase_start)
                 if phase_diff >= phase_length:
-                    phase_start = ticks_us()
+                    phase_start = system.ticks_us()
                     phase = phases[0]
                     phases = phases[1:]
                     print("Phase %s, time_diff %d" % (phase, phase_diff))

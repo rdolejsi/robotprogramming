@@ -1,6 +1,3 @@
-from microbit import button_a, button_b
-from utime import ticks_us, ticks_diff
-
 from system import System
 from wheel_driver import WheelDriver
 
@@ -138,30 +135,30 @@ if __name__ == "__main__":
 
     try:
         regulation_cycle_length = 50_000
-        regulation_cycle_start = ticks_us()
+        regulation_cycle_start = system.ticks_us()
         ll, lc, lr, li, ri = system.get_sensors()
 
-        while not button_a.is_pressed():
+        while not system.is_button_a_pressed():
             wheels.update()
             ll_old, lc_old, lr_old, li_old, ri_old = ll, lc, lr, li, ri
             ll, lc, lr, li, ri = system.get_sensors()
             if (ll, lc, lr, li, ri) != (ll_old, lc_old, lr_old, li_old, ri_old):
                 system.display_sensors(ll, lc, lr, li, ri)
 
-            time_now = ticks_us()
-            if ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
+            time_now = system.ticks_us()
+            if system.ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
                 regulation_cycle_start = time_now
                 lcr = (ll << 2) | (lc << 1) | lr
                 # special actions w/o sensor dependency
                 if action.while_sensor == -1 and action.until_sensor == -1:
                     if action == ACTIONS["START"]:
                         wheels.stop()
-                        if button_b.is_pressed():
+                        if system.is_button_b_pressed():
                             print("B pressed, starting")
                             state, action, action_idx = transition_to_state(state, action, "LINE")
                     elif action == ACTIONS["STOP"]:
                         wheels.stop()
-                        if button_b.is_pressed():
+                        if system.is_button_b_pressed():
                             state, action, action_idx = transition_to_state(state, action, "START")
 
                 # stop immediately (no tolerance in existing state) and return to the start

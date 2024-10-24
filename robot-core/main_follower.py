@@ -1,17 +1,15 @@
-from microbit import button_a
-from utime import ticks_us, ticks_diff
-
 from sonar import Sonar
 from system import System
 from wheel_driver import WheelDriver
 
 if __name__ == "__main__":
+    system = System()
     wheels = WheelDriver(
-        system=System(),
+        system=system,
         left_pwm_min=60, left_pwm_multiplier=0.08752789, left_pwm_shift=-2.150176,
         right_pwm_min=60, right_pwm_multiplier=0.08356924, right_pwm_shift=-2.03894
     )
-    sonar = Sonar()
+    sonar = Sonar(system=system)
     try:
         # Tries to maintain the robot around 20 cm in front of an obstacle.
         # We use Sonar to measure distance to the obstacle and gradually increase
@@ -39,16 +37,16 @@ if __name__ == "__main__":
         distance_m_to_speed_radsec = (speed_rad_max - speed_rad_min) / (distance_m_max - distance_m_desired)
 
         info_cycle_length = 1_000_000
-        info_cycle_start = ticks_us()
+        info_cycle_start = system.ticks_us()
         regulation_cycle_length = 200_000
-        regulation_cycle_start = ticks_us()
+        regulation_cycle_start = system.ticks_us()
 
         distance = None
-        while not button_a.is_pressed():
+        while not system.is_button_a_pressed():
             wheels.update()
 
-            time_now = ticks_us()
-            if ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
+            time_now = system.ticks_us()
+            if system.ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
                 regulation_cycle_start = time_now
                 distance = sonar.get_distance()
                 if distance > distance_m_max:
@@ -89,7 +87,7 @@ if __name__ == "__main__":
                     else:
                         wheels.stop()
 
-            if ticks_diff(time_now, info_cycle_start) > info_cycle_length:
+            if system.ticks_diff(time_now, info_cycle_start) > info_cycle_length:
                 info_cycle_start = time_now
                 speed_msec_left = wheels.left.enc.speed_msec()
                 speed_msec_right = wheels.right.enc.speed_msec()

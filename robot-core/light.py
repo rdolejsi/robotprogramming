@@ -1,4 +1,4 @@
-from utime import ticks_us, ticks_diff
+from system import System
 
 
 class LightMode:
@@ -20,8 +20,9 @@ class Light:
     This is needed to allow multiple lights to be updated using a single call
     to the hardware, as designed by NeoPixel stripe handler."""
 
-    def __init__(self, position, on_color):
+    def __init__(self, system: System, position: int, on_color: tuple):
         """Initializes light with the operational color, as turned off."""
+        self.system = system
         self.position = position
         self.on_color = on_color
         self.state = (0, 0, 0)
@@ -56,18 +57,18 @@ class Light:
         """Blinks the light between black and on_color with the given frequency."""
         self.mode = LightMode.BLINK
         self.blink_frequency_us = blink_frequency_us
-        self.blink_start_time = ticks_us()
+        self.blink_start_time = self.system.ticks_us()
 
-    def is_blinking(self, direction):
+    def is_blinking(self):
         """Checks if the light is blinking."""
         return self.mode == LightMode.BLINK
 
     def update(self):
         """Updates the light state based on the current mode and time."""
         if self.mode == LightMode.BLINK:
-            time_delta = ticks_diff(ticks_us(), self.blink_start_time)
+            time_delta = self.system.ticks_diff(self.system.ticks_us(), self.blink_start_time)
             if time_delta >= self.blink_frequency_us:
-                self.blink_start_time = ticks_us()
+                self.blink_start_time = self.system.ticks_us()
                 if self.state == (0, 0, 0):
                     self.state = self.on_color
                 else:

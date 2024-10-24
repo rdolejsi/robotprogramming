@@ -1,6 +1,3 @@
-from microbit import button_a, button_b
-from utime import ticks_us, ticks_diff
-
 from system import System
 from wheel_driver import WheelDriver
 
@@ -139,32 +136,32 @@ if __name__ == "__main__":
 
     try:
         info_cycle_length = 500_000
-        info_cycle_start = ticks_us()
+        info_cycle_start = system.ticks_us()
         regulation_cycle_length = 50_000
-        regulation_cycle_start = ticks_us()
+        regulation_cycle_start = system.ticks_us()
         ll, lc, lr, li, ri = system.get_sensors()
 
-        while not button_a.is_pressed():
+        while not system.is_button_a_pressed():
             wheels.update()
             ll_old = ll; lc_old = lc; lr_old = lr; li_old = li; ri_old = ri
             ll, lc, lr, li, ri = system.get_sensors()
             if (ll, lc, lr, li, ri) != (ll_old, lc_old, lr_old, li_old, ri_old):
                 system.display_sensors(ll, lc, lr, li, ri)
 
-            time_now = ticks_us()
-            if ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
+            time_now = system.ticks_us()
+            if system.ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
                 regulation_cycle_start = time_now
                 lcr = (ll << 2) | (lc << 1) | lr
                 # special actions w/o sensor dependency
                 if action.while_sensor == -1 and action.until_sensor == -1:
                     if action == ACTIONS["START"]:
-                        if button_b.is_pressed():
+                        if system.is_button_b_pressed():
                             print("B pressed, starting")
                             state, action, action_idx = transition_state_action(state, action, lcr, False)
                             system.display_drive_mode(state.symbol)
                     elif action == ACTIONS["ERROR"] or action == ACTIONS["STOP"]:
                         wheels.stop()
-                        if button_b.is_pressed():
+                        if system.is_button_b_pressed():
                             state = STATES["START"]
                             action_idx = 0
                             action = state.actions[action_idx]
@@ -245,7 +242,7 @@ if __name__ == "__main__":
                     wheels.stop()
                     pass
 
-            if ticks_diff(time_now, info_cycle_start) > info_cycle_length:
+            if system.ticks_diff(time_now, info_cycle_start) > info_cycle_length:
                 info_cycle_start = time_now
 
                 speed_msec_left = wheels.left.enc.speed_msec()

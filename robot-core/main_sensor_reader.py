@@ -1,6 +1,3 @@
-from microbit import button_a, i2c
-from utime import ticks_us, ticks_diff
-
 from system import System
 
 if __name__ == "__main__":
@@ -11,26 +8,26 @@ if __name__ == "__main__":
     system.display_on()
     try:
         info_cycle_length = 1_000_000
-        info_cycle_start = ticks_us()
-        drive_mode_pictogram_keys = list(system.DRIVE_MODE_PICTOGRAMS.keys())
-        drive_mode_pictogram_keys_index = 0
-        drive_mode_pictogram_keys_redraw_countdown = 1
+        info_cycle_start = system.ticks_us()
+        drive_mode_symbol_keys = list(system.get_drive_mode_symbol_keys())
+        drive_mode_symbol_keys_index = 0
+        drive_mode_symbol_keys_redraw_countdown = 1
 
-        while not button_a.is_pressed():
-            time_now = ticks_us()
-            if ticks_diff(time_now, info_cycle_start) > info_cycle_length:
+        while not system.is_button_a_pressed():
+            time_now = system.ticks_us()
+            if system.ticks_diff(time_now, info_cycle_start) > info_cycle_length:
                 info_cycle_start = time_now
                 l, c, r, li, ri = system.get_sensors()
                 system.display_sensors(l, c, r, li, ri)
                 raw = system.i2c_read_sensors()
                 print("Line(left=%s, center=%s, right=%s), Obstacle(left=%s, right=%s), raw data=%x (%s)" %
                       (l, c, r, li, ri, raw, bin(raw)))
-                if drive_mode_pictogram_keys_redraw_countdown > 0:
-                    drive_mode_pictogram_keys_redraw_countdown -= 1
+                if drive_mode_symbol_keys_redraw_countdown > 0:
+                    drive_mode_symbol_keys_redraw_countdown -= 1
                 else:
-                    system.display_drive_mode(drive_mode_pictogram_keys[drive_mode_pictogram_keys_index])
-                    drive_mode_pictogram_keys_index = (drive_mode_pictogram_keys_index + 1) % len(drive_mode_pictogram_keys)
-                    drive_mode_pictogram_keys_redraw_countdown = 1
+                    system.display_drive_mode(drive_mode_symbol_keys[drive_mode_symbol_keys_index])
+                    drive_mode_symbol_keys_index = (drive_mode_symbol_keys_index + 1) % len(drive_mode_symbol_keys)
+                    drive_mode_symbol_keys_redraw_countdown = 1
     finally:
         system.display_off()
         print("Finished")

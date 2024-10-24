@@ -1,6 +1,3 @@
-from microbit import button_a
-from utime import ticks_us, ticks_diff
-
 from sonar import Sonar
 from system import System
 from wheel_driver import WheelDriver
@@ -29,8 +26,9 @@ if __name__ == "__main__":
     ROBOT_MODE_SCAN = "scan"
     ROBOT_MODE_TURN = "turn"
 
+    system = System()
     wheels = WheelDriver(
-        system=System(),
+        system=system,
         left_pwm_min=60, left_pwm_multiplier=0.08944848, left_pwm_shift=-2.722451,
         right_pwm_min=60, right_pwm_multiplier=0.08349663, right_pwm_shift=-2.0864
     )
@@ -45,19 +43,19 @@ if __name__ == "__main__":
         distance_m_to_speed_radsec = (speed_rad_max - speed_rad_min) / (DISTANCE_MAX - DISTANCE_DESIRED)
 
         info_cycle_length = 1_000_000
-        info_cycle_start = ticks_us()
+        info_cycle_start = system.ticks_us()
         regulation_cycle_length = 50_000
-        regulation_cycle_start = ticks_us()
+        regulation_cycle_start = system.ticks_us()
 
         distance = None
         robot_mode = ROBOT_MODE_FOLLOW
         print("Switching robot mode to %s" % robot_mode)
-        while not button_a.is_pressed():
+        while not system.is_button_a_pressed():
             wheels.update()
             sonar.update()
 
-            time_now = ticks_us()
-            if ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
+            time_now = system.ticks_us()
+            if system.ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:
                 regulation_cycle_start = time_now
                 if robot_mode == ROBOT_MODE_TURN:
                     # We are in the turning mode, we need to wait until the robot reorients itself
@@ -142,7 +140,7 @@ if __name__ == "__main__":
                         else:
                             wheels.stop()
 
-            if ticks_diff(time_now, info_cycle_start) > info_cycle_length:
+            if system.ticks_diff(time_now, info_cycle_start) > info_cycle_length:
                 info_cycle_start = time_now
                 speed_msec_left = wheels.left.enc.speed_msec()
                 speed_msec_right = wheels.right.enc.speed_msec()

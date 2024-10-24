@@ -1,4 +1,4 @@
-from utime import ticks_us, ticks_diff
+from system import System
 
 class WheelEncoder:
     """Encoder is able to monitor the wheel movement precisely
@@ -17,8 +17,9 @@ class WheelEncoder:
     MAX_TICK_TIME_US = 200_000  # maximum possible tick time (after which we consider speed to be zero)
     AVG_TICK_COUNT = 3
 
-    def __init__(self, sensor_pin):
+    def __init__(self, system: System, sensor_pin):
         """Initializes the wheel encoder."""
+        self.system = system
         self.sensor_pin = sensor_pin
         self.sensor_value = -1
         self.tick_last_time = -1
@@ -33,18 +34,18 @@ class WheelEncoder:
 
     def reset(self):
         """Resets the encoder state."""
-        self.__init__(self.sensor_pin)
+        self.__init__(self.system, self.sensor_pin)
 
     def update(self):
         """Updates the encoder state based on the ongoing command."""
         """Retrieves the sensor value, checks for change and updates the wheel state
         based on the ongoing command."""
         self.update_count += 1
-        time_now = ticks_us()
-        last_time_diff = ticks_diff(time_now, self.tick_last_time)
+        time_now = self.system.ticks_us()
+        last_time_diff = self.system.ticks_diff(time_now, self.tick_last_time)
         if self.tick_last_time != -1 and last_time_diff < self.MIN_TICK_TIME_US:
             return False
-        sensor_value_now = self.sensor_pin.read_digital()
+        sensor_value_now = self.system.pin_read_digital(self.sensor_pin)
         if sensor_value_now == self.sensor_value:
             if last_time_diff >= self.MAX_TICK_TIME_US:
                 self.speed_radsec = 0
@@ -70,7 +71,7 @@ class WheelEncoder:
             if self.speed_radsec_avg == 0:
                 self.speed_radsec_avg = self.speed_radsec
         else:
-            last_time_avg_diff = ticks_diff(time_now, self.tick_last_time_avg)
+            last_time_avg_diff = self.system.ticks_diff(time_now, self.tick_last_time_avg)
             self.speed_radsec_avg = self.RAD_PER_TICK * self.AVG_TICK_COUNT / (last_time_avg_diff / 1_000_000)
             self.tick_last_time_avg = time_now
             self.tick_count = 0

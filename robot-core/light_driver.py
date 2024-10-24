@@ -1,6 +1,5 @@
-from microbit import pin0
-from neopixel import NeoPixel
 from light import Light
+from system import System
 
 
 class LightDriver:
@@ -31,13 +30,14 @@ class LightDriver:
         ORANGE, RED_MILD, RED_MILD, ORANGE
     ]
 
-    def __init__(self):
+    def __init__(self, system: System):
         """Initializes the light driver with all lights initially switched off."""
+        self.system = system
+        self.neopixel = None  # we will be initializing lights on demand to spare memory
         self.lights = [
-            Light(idx, on_color=self.initial_color_for_position[idx])
+            Light(system, idx, on_color=self.initial_color_for_position[idx])
             for idx in range(8)
         ]
-        self.neopixel = NeoPixel(pin0, 8)
         # controls the shared lights for headlight and beam headlight indication
         # with the following priority: reverse (left only, see placement) > brake > back
         self.head_enabled = False  # keeps headlight on after beam lights go off
@@ -58,10 +58,10 @@ class LightDriver:
         for light in self.lights:
             light_state = light.update()
             if light_state is not None:
-                self.neopixel[light.position] = light_state
+                self.set_light(light.position, light_state)
                 write_required = True
         if write_required:
-            self.neopixel.write()
+            self.update_lights()
 
     def head_on(self):
         """Turns the headlights on. If beam headlights are on, lights are unaffected."""
@@ -171,3 +171,38 @@ class LightDriver:
                 self.lights[light_pos].on()
             else:
                 self.lights[light_pos].off()
+
+    # The following methods are hardware-specific and should be in system-specific classes.
+    # However, due to Micro:Bit memory constrains, we touch lights only if needed to fit in its memory.
+    # Hence, the work with Neopixel is excluded from the main system implementation and even happens in runtime only.
+
+    def init_lights_if_needed(self):
+        """Initializes the lights if they are not initialized yet."""
+        if self.system.get_system_type() == System.SYS_MBIT:
+            if self.neopixel is None:
+                from neopixel import NeoPixel
+                from microbit import pin0
+                self.neopixel = NeoPixel(pin0, 8)
+        elif self.system.get_system_type() == System.SYS_PICO:
+            pass
+        pass
+
+    def set_light(self, light: int, state: int):
+        """Sets the state of a light."""
+        if self.system.get_system_type() == System.SYS_MBIT:
+            self.init_lights_if_needed()
+            self.neopixel[light] = state
+        elif self.system.get_system_type() == System.SYS_PICO:
+            # Implementation for CircuitPython is pending
+            pass
+        pass
+
+    def update_lights(self):
+        """Updates the state of all lights."""
+        if self.system.get_system_type() == System.SYS_MBIT:
+            self.init_lights_if_needed()
+            self.neopixel.write()
+        elif self.system.get_system_type() == System.SYS_PICO:
+            # Implementation for CircuitPython is pending
+            pass
+        pass

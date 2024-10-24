@@ -1,5 +1,3 @@
-from utime import ticks_us, ticks_diff
-
 from wheel_encoder import WheelEncoder
 from system import System
 
@@ -20,7 +18,7 @@ class Wheel:
         self.distance_req_time_us = -1
         self.distance_start_time_us = 0
         self.speed_pwm = 0
-        self.enc = WheelEncoder(sensor_pin=sensor_pin)
+        self.enc = WheelEncoder(system=system, sensor_pin=sensor_pin)
         self.pwm_min = pwm_min
         self.pwm_max = pwm_max
         self.pwm_multiplier = pwm_multiplier
@@ -55,7 +53,7 @@ class Wheel:
         self.set_speed_pwm(speed_pwm)
         self.distance_req_time_us += distance_time_us
         if self.distance_start_time_us == 0:
-            self.distance_start_time_us = ticks_us()
+            self.distance_start_time_us = self.system.ticks_us()
 
     def move_pwm_for_distance(self, speed_pwm, distance):
         """Moves the wheel forward using given PWM speed for given distance in meters."""
@@ -76,8 +74,8 @@ class Wheel:
         if speed_pwm == 0:
             if self.speed_pwm != 0:
                 # print("Stopping %s wheel" % self.name)
-                self.system.i2c_write(bytes([self.motor_fwd_cmd, 0]))
-                self.system.i2c_write(bytes([self.motor_rwd_cmd, 0]))
+                self.system.i2c_write_motor(bytes([self.motor_fwd_cmd, 0]))
+                self.system.i2c_write_motor(bytes([self.motor_rwd_cmd, 0]))
                 self.speed_pwm = 0
             return
         speed_pwm = int(max(-255, min(255, speed_pwm)))
@@ -89,10 +87,10 @@ class Wheel:
             motor_reset_cmd = (self.motor_rwd_cmd
                                if speed_pwm >= 0 else self.motor_fwd_cmd)
             # print("Changing %s wheel direction" % self.name)
-            self.system.i2c_write(bytes([motor_reset_cmd, 0]))
+            self.system.i2c_write_motor(bytes([motor_reset_cmd, 0]))
         motor_set_cmd = self.motor_fwd_cmd if speed_pwm > 0 else self.motor_rwd_cmd
         print("Setting %s wheel speed_pwm %d" % (self.name, speed_pwm))
-        self.system.i2c_write(bytes([motor_set_cmd, abs(speed_pwm)]))
+        self.system.i2c_write_motor(bytes([motor_set_cmd, abs(speed_pwm)]))
         self.speed_pwm = speed_pwm
 
     def radsec2pwm(self, radsec):
@@ -124,7 +122,7 @@ class Wheel:
             stop_due_to_ticks = False
         stop_due_to_time = True
         if self.distance_req_time_us >= 0:
-            time_delta = ticks_diff(ticks_us(), self.distance_start_time_us)
+            time_delta = self.system.ticks_diff(self.system.ticks_us(), self.distance_start_time_us)
             if time_delta < self.distance_req_time_us:
                 stop_due_to_time = False
         # we stop only if both conditions are met

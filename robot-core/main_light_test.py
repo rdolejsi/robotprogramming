@@ -1,24 +1,24 @@
-from utime import ticks_us, ticks_diff
-
 from light_driver import LightDriver
+from system import System
 
 if __name__ == "__main__":
     __run__ = "__light_test__"
 
-    lights = LightDriver()
+    system = System()
+    lights = LightDriver(system)
 
     try:
         if __run__ == "__light_test__":
             phase_length = 2000 * 1000
-            phase_start = ticks_us()
+            phase_start = system.ticks_us()
             phase_report_length = 250 * 1000
             phase_report_start = phase_start
             phase = "init"
             phases = ["init", "beam", "brake", "rev", "rev_off", "brake_off", "beam_off", "stop"]
             while len(phases) > 0:
-                phase_diff = ticks_diff(ticks_us(), phase_start)
+                phase_diff = system.ticks_diff(system.ticks_us(), phase_start)
                 if phase_diff >= phase_length:
-                    phase_start = ticks_us()
+                    phase_start = system.ticks_us()
                     phase = phases[0]
                     phases = phases[1:]
                     print("Phase %s, time_diff %d" % (phase, phase_diff))
