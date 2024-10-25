@@ -39,7 +39,7 @@ class System(SystemBase):
         return ticks_diff(ticks1, ticks2)
 
     def sleep_us(self, us):
-        sleep(us / 1_000)
+        sleep(us / 1_000_000)
 
     def i2c_read(self, addr: int, n: int) -> bytes:
         return i2c.read(addr, n)
@@ -85,8 +85,8 @@ class System(SystemBase):
 
     def display_text(self, label):
         """Sets a label on the robot display (prints in log, displays the first letter on the screen)."""
-        display.show(label[0])
         print("Label: %s" % label)
+        display.show(label[0])
 
     def display_sensors(self, ll, lc, lr, il, ir, y=4, lb=9, ib=5):
         """Displays the sensors in top line of the display as pixels for each sensor.
