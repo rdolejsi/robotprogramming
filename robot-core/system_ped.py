@@ -137,12 +137,13 @@ class System(SystemBase):
         """Displays the sensors in top line of the display as pixels for each sensor.
         Line sensors (left, center, right) are far left, center, far right, lb is line brightness 0-9, default 9.
         IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""
-        stretch = 4
-        display.pixel(4 * stretch, y, lb if ll else 0)
-        display.pixel(2 * stretch, y, lb if lc else 0)
-        display.pixel(0 * stretch, y, lb if lr else 0)
-        display.pixel(3 * stretch, y, ib if il else 0)
-        display.pixel(1 * stretch, y, ib if ir else 0)
+        x_pos = 4
+        stretch = 2
+        display.pixel(x_pos + 4 * stretch, y, lb if ll else 0)
+        display.pixel(x_pos + 2 * stretch, y, lb if lc else 0)
+        display.pixel(x_pos + 0 * stretch, y, lb if lr else 0)
+        display.pixel(x_pos + 3 * stretch, y, ib if il else 0)
+        display.pixel(x_pos + 1 * stretch, y, ib if ir else 0)
 
     def display_drive_mode(self, mode):
         """Displays the detected drive mode in the lower left corner (5x5 pixels), supporting
