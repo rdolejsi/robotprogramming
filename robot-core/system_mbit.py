@@ -98,18 +98,19 @@ class System(SystemBase):
         """Displays the detected drive mode in the lower left corner (3x3 pixels), supporting
         all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
         lines = self.DRIVE_MODE_PICTOGRAMS[mode if mode in self.DRIVE_MODE_PICTOGRAMS else ' ']
-        self.display_bitmap(0, 2, 3, lines)
+        self.display_bitmap(1, 2, 3, lines)
 
     def get_drive_mode_symbol_keys(self):
         return list(self.DRIVE_MODE_PICTOGRAMS.keys())
 
-    def display_speed(self, speed_now, speed_max):
+    def display_speed(self, speed_now, speed_max, left: bool):
         """Displays the current speed on the display (represented as a 3-pixel bar) on the right side of display."""
-        height = int(3 * speed_now / speed_max)
         intensity = 3
-        display.set_pixel(0, 0, intensity if height >= 1 else 0)
-        display.set_pixel(0, 1, intensity if height >= 2 else 0)
-        display.set_pixel(0, 2, intensity if height >= 3 else 0)
+        height_max = 4
+        height = int(height_max * speed_now / speed_max)
+        x_pos = 4 if left else 0
+        for y in range(height_max):
+            display.set_pixel(x_pos, y, intensity if y < height else 0)
 
     def display_bitmap(self, x_pos: int, y_pos: int, width: int, lines: list[int]):
         """Displays the bitmap on the display (0x0 = top left, max 5x5). Bitwise, each line int is right-aligned."""

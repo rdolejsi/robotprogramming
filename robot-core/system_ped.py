@@ -154,11 +154,14 @@ class System(SystemBase):
     def get_drive_mode_symbol_keys(self):
         return list(self.DRIVE_MODE_PICTOGRAMS.keys())
 
-    def display_speed(self, speed_now, speed_max):
-        """Displays the current speed as a horizontal bar on the left of the display."""
-        width = int(5 * speed_now / speed_max)
-        for y in range(5):
-            display.pixel(16, y, 2 if y < width else 0)
+    def display_speed(self, speed_now, speed_max, left: bool):
+        """Displays the current speed as a horizontal bar on the left or right of the display."""
+        intensity = 2
+        height_max = 7
+        height = int(height_max * speed_now / speed_max)
+        x_pos = 16 if left else 0
+        for y in range(height_max):
+            display.pixel(x_pos, y, intensity if y < height else 0)
 
     def display_bitmap(self, x_pos: int, y_pos: int, width: int, lines: list[int]):
         for y in range(len(lines)):

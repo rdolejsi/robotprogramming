@@ -31,7 +31,8 @@ if __name__ == "__main__":
                     system.display_drive_mode(drive_mode_symbol_keys[drive_mode_symbol_keys_index])
                     drive_mode_symbol_keys_index = (drive_mode_symbol_keys_index + 1) % len(drive_mode_symbol_keys)
                     drive_mode_symbol_keys_redraw_countdown = 1
-                system.display_speed(speed, speed_max)
+                system.display_speed(speed, speed_max, left=True)
+                system.display_speed(speed_max - speed, speed_max, left=False)
                 speed += speed_inc
                 if speed >= speed_max:
                     speed = speed_max

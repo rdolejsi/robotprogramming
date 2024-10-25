@@ -148,8 +148,8 @@ class System:
         """Returns the keys of the drive mode symbols."""
         pass
 
-    def display_speed(self, speed_now, speed_max):
-        """Displays the current speed on the display. Position and form is platform-dependent."""
+    def display_speed(self, speed_now, speed_max, left: bool):
+        """Displays one of the two current wheel speeds on the display. Position and form is platform-dependent."""
         pass
 
     def display_bitmap(self, x_pos: int, y_pos: int, width: int, lines: list[int]):

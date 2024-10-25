@@ -132,7 +132,10 @@ if __name__ == "__main__":
     system.display_drive_mode(action.symbol)
     out_of_state_cycle = 0
     line_losing_cycle = 0
-
+    # carries max speed for each wheel (for display purposes)
+    # will be updated on forward to correct values
+    fwd_speed_pwm_left = 255
+    fwd_speed_pwm_right = 255
     try:
         regulation_cycle_length = 50_000
         regulation_cycle_start = system.ticks_us()
@@ -181,8 +184,11 @@ if __name__ == "__main__":
                     if action == ACTIONS["FWD"]:
                         print("FWD, rad %s" % fwd_speed)
                         wheels.move(speed_rad=fwd_speed, rotation_rad=0)
+                        fwd_speed_pwm_left = wheels.left.speed_pwm
+                        fwd_speed_pwm_right = wheels.right.speed_pwm
                         if line_losing_cycle != 1:
-                            system.display_speed(fwd_speed, fwd_speed)
+                            system.display_speed(fwd_speed, fwd_speed, left=True)
+                            system.display_speed(fwd_speed, fwd_speed, left=False)
                         line_losing_cycle = 1  # set to 1 to immediately start with the first increment if we lose line
                     elif action == ACTIONS["FWD_L"] or action == ACTIONS["FWD_R"]:
                         line_losing_cycle += 1
@@ -192,7 +198,8 @@ if __name__ == "__main__":
                         align_speed = max(align_speed, side_speed_min)
                         direction = 1 if action == ACTIONS["FWD_L"] else -1
                         wheels.move(speed_rad=align_speed, rotation_rad=rotation_rad * direction)
-                        system.display_speed(align_speed, fwd_speed)
+                        system.display_speed(wheels.left.speed_pwm, fwd_speed_pwm_left, left=True)
+                        system.display_speed(wheels.right.speed_pwm, fwd_speed_pwm_right, left=False)
                         print(
                             "%s, rotation_rad %d, init %s + inc_per_cycle %s * cycle %s" %
                             (action, rotation_rad, side_arc_min, side_arc_inc, line_losing_cycle))
