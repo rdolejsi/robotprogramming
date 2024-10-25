@@ -21,7 +21,7 @@ class System(SystemBase):
         '|': [0b010, 0b010, 0b010],
         '/': [0b001, 0b010, 0b100],
         '\\': [0b100, 0b010, 0b001],
-        's': [0b000, 0b110, 0b011],
+        's': [0b011, 0b010, 0b110],
         'x': [0b101, 0b010, 0b101],
     }
 
@@ -116,7 +116,7 @@ class System(SystemBase):
         """Displays the bitmap on the display (0x0 = top left, max 5x5). Bitwise, each line int is right-aligned."""
         for y in range(len(lines)):
             for x in range(width):
-                display.set_pixel(4 - (x_pos + x), 4 - (y_pos + y), 9 if lines[y] & (1 << x) else 0)
+                display.set_pixel(x_pos + x, 4 - (y_pos + y), 9 if lines[y] & (1 << x) else 0)
 
     def display_clear(self):
         """Clears the display."""

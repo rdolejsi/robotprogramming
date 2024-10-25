@@ -29,10 +29,10 @@ ACTIONS = dict(
     START=Action("Start", 's', -1, -1),
     # moves forward, no rotation
     FWD=Action("Fwd", '|', 0b010, -1),
-    #  moves forward with slight turn from the left to right (left sensor triggered, symbol for turning right)
-    FWD_L=Action("Fwd-L", '/', 0b100, 0b010),
-    #  moves forward with slight turn from the right to left (right sensor triggered, symbol for turning left)
-    FWD_R=Action("Fwd-R", '\\', 0b001, 0b010),
+    #  moves forward with slight turn from the left to right (right sensor triggered, symbol for turning right)
+    FWD_R=Action("Fwd-R", '/', 0b001, 0b010),
+    #  moves forward with slight turn from the right to left (left sensor triggered, symbol for turning left)
+    FWD_L=Action("Fwd-L", '\\', 0b100, 0b010),
     STOP=Action("Stop", '.', -1, -1),  # stops the robot
 )
 
@@ -156,6 +156,8 @@ if __name__ == "__main__":
                 if action.while_sensor == -1 and action.until_sensor == -1:
                     if action == ACTIONS["START"]:
                         wheels.stop()
+                        system.display_speed(0, fwd_speed_pwm_left, left=True)
+                        system.display_speed(0, fwd_speed_pwm_right, left=False)
                         if system.is_button_b_pressed():
                             print("B pressed, starting")
                             state, action, action_idx = transition_to_state(state, action, "LINE")
