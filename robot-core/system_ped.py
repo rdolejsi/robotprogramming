@@ -1,17 +1,23 @@
 from time import monotonic_ns, sleep
 
-from board import P2
-from picoed import i2c, display
+from board import P1, P2, P14, P15
+from digitalio import DigitalInOut, Direction
+from picoed import i2c, display, button_a, button_b
+from pwmio import PWMOut
 
 from system import System as SystemBase
 
 
 class System(SystemBase):
-    VOLTAGE_PIN = P2
+    """Pico:Ed implementation of the System class.
+    The platform-specific classes used here come from the Pico:Ed library.
+    The sources of this library are available at https://github.com/elecfreaks/circuitpython_picoed.
+    Display is based on Adafruit library at https://github.com/adafruit/Adafruit_CircuitPython_IS31FL3731.
+    Light is based on Adafruit library at https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel."""
 
-    def __init__(self, i2c_freq=SystemBase.I2C_FREQ):
+    def __init__(self):
         super().__init__()
-        i2c.init(freq=i2c_freq)
+        self.sonar_servo_pin = PWMOut(P1, frequency=100)
 
     def get_system_type(self):
         return self.SYS_PICO
@@ -47,16 +53,16 @@ class System(SystemBase):
         i2c.unlock()
 
     def pin_read_digital(self, pin):
-        # todo: implement this
-        pass
+        pin.direction = Direction.INPUT
+        return 1 if pin.value else 0
 
     def pin_write_digital(self, pin, value: int):
-        # todo: implement this
-        pass
+        pin.direction = Direction.OUTPUT
+        pin.value = value != 1
 
     def set_sonar_angle_pwm(self, angle_pwm: int):
-        # todo: implement this
-        pass
+        scaled_value = int((angle_pwm / 128) * 16384)
+        self.sonar_servo_pin.duty_cycle = scaled_value
 
     def trigger_sonar(self, value: int):
         # todo: implement this
@@ -71,27 +77,23 @@ class System(SystemBase):
         pass
 
     def get_encoder_pin_left(self):
-        # todo: implement this
-        pass
+        return DigitalInOut(P14)
 
     def get_encoder_pin_right(self):
-        # todo: implement this
-        pass
+        return DigitalInOut(P15)
 
     def get_adc_value(self) -> int:
         return P2.read_analog()
 
     def is_button_a_pressed(self):
-        # todo: implement this
-        pass
+        return button_a.is_pressed()
 
     def is_button_b_pressed(self):
-        # todo: implement this
-        pass
+        return button_b.is_pressed()
 
     def display_text(self, label):
-        display.text(label[0,3])
         print("Label: %s" % label)
+        display.scroll(label[0:3])
 
     def display_sensors(self, ll, lc, lr, il, ir, y=4, lb=9, ib=5):
         # todo: implement this
