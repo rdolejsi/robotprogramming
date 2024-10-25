@@ -1,0 +1,8 @@
+#!/bin/bash
+CLEAN="clean"
+BUILD="build"
+if [ "$1" == "-u" ]; then
+  CLEAN=""
+  BUILD=""
+fi
+./gradlew -Pmain=main_voltage.py -Pexclude=wheel.*,light.* $CLEAN $BUILD upload

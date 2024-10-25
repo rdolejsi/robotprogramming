@@ -1,9 +1,10 @@
 from time import monotonic_ns, sleep
 
-from pulseio import PulseIn
+from analogio import AnalogIn
 from board import P1, P2, P8, P12, P14, P15
 from digitalio import DigitalInOut, Direction
 from picoed import i2c, display, button_a, button_b
+from pulseio import PulseIn
 from pwmio import PWMOut
 
 from system import System as SystemBase
@@ -18,7 +19,10 @@ class System(SystemBase):
 
     def __init__(self):
         super().__init__()
+        # Sonar servo
         self.pin1 = PWMOut(P1, frequency=100)
+        # ADC
+        self.pin2 = AnalogIn(P2)
         # Sonar trigger
         self.pin8 = DigitalInOut(P8)
         self.pin8.direction = Direction.OUTPUT
@@ -97,7 +101,8 @@ class System(SystemBase):
         return self.pin15
 
     def get_adc_value(self) -> int:
-        return P2.read_analog()
+        # scale ADC value to 10-bit value as expected by the caller
+        return self.pin2.value * 1024 // 16384
 
     def is_button_a_pressed(self):
         return button_a.is_pressed()
