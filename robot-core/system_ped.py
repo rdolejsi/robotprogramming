@@ -133,7 +133,7 @@ class System(SystemBase):
         print("Label: %s" % label)
         display.scroll(label[0:3])
 
-    def display_sensors(self, ll, lc, lr, il, ir, y=6, lb=32, ib=3):
+    def display_sensors(self, il, ir, ll, lc, lr, y=6, lb=32, ib=3):
         """Displays the sensors in top line of the display as pixels for each sensor.
         Line sensors (left, center, right) are far left, center, far right, lb is line brightness 0-9, default 9.
         IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""

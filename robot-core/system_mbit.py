@@ -84,7 +84,7 @@ class System(SystemBase):
         print("Label: %s" % label)
         display.show(label[0])
 
-    def display_sensors(self, ll, lc, lr, il, ir, y=4, lb=9, ib=5):
+    def display_sensors(self, il, ir, ll, lc, lr, y=4, lb=9, ib=5):
         """Displays the sensors in top line of the display as pixels for each sensor.
         Line sensors (left, center, right) are far left, center, far right, lb is line brightness 0-9, default 9.
         IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""

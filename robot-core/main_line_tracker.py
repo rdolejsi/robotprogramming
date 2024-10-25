@@ -139,14 +139,14 @@ if __name__ == "__main__":
     try:
         regulation_cycle_length = 50_000
         regulation_cycle_start = system.ticks_us()
-        ll, lc, lr, li, ri = system.get_sensors()
+        li, ri, ll, lc, lr = system.get_sensors()
 
         while not system.is_button_a_pressed():
             wheels.update()
-            ll_old, lc_old, lr_old, li_old, ri_old = ll, lc, lr, li, ri
-            ll, lc, lr, li, ri = system.get_sensors()
-            if (ll, lc, lr, li, ri) != (ll_old, lc_old, lr_old, li_old, ri_old):
-                system.display_sensors(ll, lc, lr, li, ri)
+            li_old, ri_old, ll_old, lc_old, lr_old = li, ri, ll, lc, lr
+            li, ri, ll, lc, lr = system.get_sensors()
+            if (li, ri, ll, lc, lr) != (li_old, ri_old, ll_old, lc_old, lr_old):
+                system.display_sensors(li, ri, ll, lc, lr)
 
             time_now = system.ticks_us()
             if system.ticks_diff(time_now, regulation_cycle_start) > regulation_cycle_length:

@@ -61,15 +61,15 @@ class System:
         return self.i2c_read(self.I2C_SENSOR_DEVICE, 1)[0]
 
     def get_sensors(self):
-        """Checks if line sensors (left, center, right, ) detected a line (true if line is present)
-        or obstacle sensors (, left, right) detect an obstacle (true if [white] reflection is present)."""
+        """Checks if line sensors (..., left, center, right) detected a line (true if line is present)
+        or obstacle sensors (left, right, ...) detect an obstacle (true if [white] reflection is present)."""
         data = self.i2c_read_sensors()
+        li = bool(data & self.MASK_IR_LEFT)
+        ri = bool(data & self.MASK_IR_RIGHT)
         ll = bool(data & self.MASK_LINE_LEFT)
         lc = bool(data & self.MASK_LINE_CENTER)
         lr = bool(data & self.MASK_LINE_RIGHT)
-        li = bool(data & self.MASK_IR_LEFT)
-        ri = bool(data & self.MASK_IR_RIGHT)
-        return ll, lc, lr, not li, not ri
+        return not li, not ri, ll, lc, lr
 
     def pin_read_digital(self, pin):
         """Reads the digital value of a pin."""
@@ -132,7 +132,7 @@ class System:
         """Sets a label on the robot display (prints in log, displays the first letter on the screen)."""
         pass
 
-    def display_sensors(self, ll, lc, lr, il, ir, y=4, lb=9, ib=5):
+    def display_sensors(self, il, ir, ll, lc, lr, y=4, lb=9, ib=5):
         """Displays the sensors in top line of the display as pixels for each sensor.
         Line sensors (left, center, right) are far left, center, far right, lb is line brightness 0-9, default 9.
         IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""
