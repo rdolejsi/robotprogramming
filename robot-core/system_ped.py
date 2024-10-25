@@ -17,6 +17,25 @@ class System(SystemBase):
     Light uses NeoPixel library at https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel.
     Sonar code is inspired by HC-SR04 library at https://github.com/adafruit/Adafruit_CircuitPython_HCSR04."""
 
+    DRIVE_MODE_PICTOGRAMS = {
+        ' ': [0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
+        'TL': [0b00000, 0b00000, 0b11100, 0b00100, 0b00100],  # sharp turn to left
+        'TR': [0b00000, 0b00000, 0b00111, 0b00100, 0b00100],  # sharp turn to right
+        'IT': [0b00000, 0b00000, 0b11111, 0b00100, 0b00100],  # intersection left-right (T)
+        'IL': [0b00100, 0b00100, 0b11100, 0b00100, 0b00100],  # intersection left-straight (T to left)
+        'IR': [0b00100, 0b00100, 0b00111, 0b00100, 0b00100],  # intersection right-straight (T to right)
+        'Y': [0b10001, 0b01010, 0b00100, 0b00100, 0b00100],  # split in the road (Y)
+        '+': [0b00100, 0b00100, 0b11111, 0b00100, 0b00100],
+        '-': [0b00000, 0b00000, 0b11111, 0b00000, 0b00000],
+        '_': [0b00000, 0b00000, 0b00000, 0b00000, 0b11111],
+        '.': [0b00000, 0b00000, 0b00000, 0b00000, 0b00100],
+        '|': [0b00100, 0b00100, 0b00100, 0b00100, 0b00100],
+        '/': [0b00001, 0b00010, 0b00100, 0b01000, 0b10000],
+        '\\': [0b10000, 0b01000, 0b00100, 0b00010, 0b00001],
+        's': [0b00111, 0b01000, 0b01110, 0b00010, 0b11100],
+        'x': [0b10001, 0b01010, 0b00100, 0b01010, 0b10001],
+    }
+
     def __init__(self):
         super().__init__()
         # Sonar servo
@@ -114,34 +133,43 @@ class System(SystemBase):
         print("Label: %s" % label)
         display.scroll(label[0:3])
 
-    def display_sensors(self, ll, lc, lr, il, ir, y=4, lb=9, ib=5):
-        # todo: implement this
-        pass
+    def display_sensors(self, ll, lc, lr, il, ir, y=6, lb=32, ib=3):
+        """Displays the sensors in top line of the display as pixels for each sensor.
+        Line sensors (left, center, right) are far left, center, far right, lb is line brightness 0-9, default 9.
+        IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""
+        stretch = 4
+        display.pixel(4 * stretch, y, lb if ll else 0)
+        display.pixel(2 * stretch, y, lb if lc else 0)
+        display.pixel(0 * stretch, y, lb if lr else 0)
+        display.pixel(3 * stretch, y, ib if il else 0)
+        display.pixel(1 * stretch, y, ib if ir else 0)
 
     def display_drive_mode(self, mode):
-        # todo: implement this
-        pass
+        """Displays the detected drive mode in the lower left corner (5x5 pixels), supporting
+        all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
+        lines = self.DRIVE_MODE_PICTOGRAMS[mode if mode in self.DRIVE_MODE_PICTOGRAMS else ' ']
+        self.display_bitmap(6, 0, 5, lines)
 
     def get_drive_mode_symbol_keys(self):
-        # todo: implement this
-        pass
+        return list(self.DRIVE_MODE_PICTOGRAMS.keys())
 
     def display_speed(self, speed_now, speed_max):
-        # todo: implement this
-        pass
+        """Displays the current speed as a vertical bar from the center to both sides of the display."""
+        width = int(8 * speed_now / speed_max)
+        for x in range(8):
+            display.pixel(8 + x, 5, 2 if x < width else 0)
+            display.pixel(8 - x, 5, 2 if x < width else 0)
 
     def display_bitmap(self, x_pos: int, y_pos: int, width: int, lines: list[int]):
-        # todo: implement this
-        pass
+        for y in range(len(lines)):
+            for x in range(width):
+                display.pixel(x_pos + width - x - 1, y_pos + width - y - 1, 9 if lines[y] & (1 << (width - x - 1)) else 0)
 
     def display_clear(self):
-        # todo: implement this
-        pass
+        display.fill(0)
 
     def display_on(self):
-        # todo: implement this
         pass
 
     def display_off(self):
-        # todo: implement this
-        pass
+        self.display_clear()

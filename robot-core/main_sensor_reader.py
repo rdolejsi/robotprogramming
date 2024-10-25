@@ -7,11 +7,14 @@ if __name__ == "__main__":
     system = System()
     system.display_on()
     try:
-        info_cycle_length = 1_000_000
+        info_cycle_length = 500_000
         info_cycle_start = system.ticks_us()
         drive_mode_symbol_keys = list(system.get_drive_mode_symbol_keys())
         drive_mode_symbol_keys_index = 0
         drive_mode_symbol_keys_redraw_countdown = 1
+        speed_max = 8
+        speed_inc = 1
+        speed = 0
 
         while not system.is_button_a_pressed():
             time_now = system.ticks_us()
@@ -28,6 +31,14 @@ if __name__ == "__main__":
                     system.display_drive_mode(drive_mode_symbol_keys[drive_mode_symbol_keys_index])
                     drive_mode_symbol_keys_index = (drive_mode_symbol_keys_index + 1) % len(drive_mode_symbol_keys)
                     drive_mode_symbol_keys_redraw_countdown = 1
+                system.display_speed(speed, speed_max)
+                speed += speed_inc
+                if speed >= speed_max:
+                    speed = speed_max
+                    speed_inc = -speed_inc
+                elif speed <= 0:
+                    speed = 0
+                    speed_inc = -speed_inc
     finally:
         system.display_off()
         print("Finished")
