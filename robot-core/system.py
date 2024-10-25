@@ -83,27 +83,19 @@ class System:
         """Sets front sonar horizontal angle PWM value."""
         pass
 
-    def trigger_sonar(self, value: int):
-        """Triggers front sonar."""
+    def get_sonar_echo_delay_us(self, timeout_us) -> int:
+        """Measures the delay it takes for the sonar echo to return.
+        Returns the delay in microseconds or a negative value if the timeout was reached."""
         pass
 
-    def get_sonar_echo(self):
-        """Gets the front sonar echo."""
-        pass
-
-    def measure_sonar_echo_time(self) -> int:
-        """Measures the time it takes for the sonar echo to return."""
-        pass
-
-    def get_sonar_distance(self):
-        """Returns the distance in meters measured by the sonar."""
-        self.trigger_sonar(1)
-        self.trigger_sonar(0)
-
-        measured_time_us = self.measure_sonar_echo_time()
+    def get_sonar_distance(self, max_distance=1.0) -> float:
+        """Returns the distance in meters measured by the sonar,
+        with the maximum time spent on detecting the echo based on the max distance we want to detect.
+        This is by default set to 1m as the reasonable maximum distance for the sonar balanced to max time spent."""
+        timeout_us = int((2 * max_distance / self.SOUND_SPEED) * 1_000_000)
+        measured_time_us = self.get_sonar_echo_delay_us(timeout_us=timeout_us)
         if measured_time_us < 0:
             return measured_time_us
-
         measured_time_sec = measured_time_us / 1_000_000
         return measured_time_sec * self.SOUND_SPEED / 2
 

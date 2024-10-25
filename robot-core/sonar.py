@@ -11,7 +11,7 @@ class Sonar:
     and the module will send out an 8 cycle burst of ultrasound at 40 kHz
     and raise its echo. The Echo Output Signal is an input TTL lever signal
     and the range in proportion to the duration of the echo signal."""
-    SERVO_MIN = 0  # right
+    SERVO_MIN = 30  # right
     SERVO_MAX = 128  # left
     SERVO_STEP = (SERVO_MAX - SERVO_MIN) / 180
 
@@ -24,8 +24,6 @@ class Sonar:
 
     def __init__(self, system: System, scan_range_max=0.5, scan_interval=125_000):
         self.system = system
-        self.system.trigger_sonar(0)
-        self.system.get_sonar_echo()
         self.angle = 0
         self.set_angle(0)
         self.scan_mode = self.SCAN_NONE

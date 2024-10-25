@@ -59,14 +59,10 @@ class System(SystemBase):
     def set_sonar_angle_pwm(self, angle_pwm: int):
         pin1.write_analog(angle_pwm)
 
-    def trigger_sonar(self, value: int):
-        self.pin_write_digital(pin8, value)
-
-    def get_sonar_echo(self):
-        return pin12.read_digital()
-
-    def measure_sonar_echo_time(self) -> int:
-        return time_pulse_us(pin12, 1)
+    def get_sonar_echo_delay_us(self, timeout_us) -> int:
+        self.pin_write_digital(pin8, 1)
+        self.pin_write_digital(pin8, 0)
+        return time_pulse_us(pin12, 1, timeout_us)
 
     def get_encoder_pin_left(self):
         return pin14

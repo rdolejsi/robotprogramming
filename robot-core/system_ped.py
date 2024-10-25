@@ -1,6 +1,7 @@
 from time import monotonic_ns, sleep
 
-from board import P1, P2, P14, P15
+from pulseio import PulseIn
+from board import P1, P2, P8, P12, P14, P15
 from digitalio import DigitalInOut, Direction
 from picoed import i2c, display, button_a, button_b
 from pwmio import PWMOut
@@ -10,14 +11,25 @@ from system import System as SystemBase
 
 class System(SystemBase):
     """Pico:Ed implementation of the System class.
-    The platform-specific classes used here come from the Pico:Ed library.
-    The sources of this library are available at https://github.com/elecfreaks/circuitpython_picoed.
-    Display is based on Adafruit library at https://github.com/adafruit/Adafruit_CircuitPython_IS31FL3731.
-    Light is based on Adafruit library at https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel."""
+    The Pico:Ed board (I2C, pins, buttons, display) use library at https://github.com/elecfreaks/circuitpython_picoed.
+    Display uses IS31FL3731 library at https://github.com/adafruit/Adafruit_CircuitPython_IS31FL3731.
+    Light uses NeoPixel library at https://github.com/adafruit/Adafruit_CircuitPython_NeoPixel.
+    Sonar code is inspired by HC-SR04 library at https://github.com/adafruit/Adafruit_CircuitPython_HCSR04."""
 
     def __init__(self):
         super().__init__()
-        self.sonar_servo_pin = PWMOut(P1, frequency=100)
+        self.pin1 = PWMOut(P1, frequency=100)
+        # Sonar trigger
+        self.pin8 = DigitalInOut(P8)
+        self.pin8.direction = Direction.OUTPUT
+        # Sonar echo
+        self.pin12 = PulseIn(P12)
+        # Encoder left
+        self.pin14 = DigitalInOut(P14)
+        self.pin14.direction = Direction.INPUT
+        # Encoder right
+        self.pin15 = DigitalInOut(P15)
+        self.pin15.direction = Direction.INPUT
 
     def get_system_type(self):
         return self.SYS_PICO
@@ -53,34 +65,36 @@ class System(SystemBase):
         i2c.unlock()
 
     def pin_read_digital(self, pin):
-        pin.direction = Direction.INPUT
         return 1 if pin.value else 0
 
     def pin_write_digital(self, pin, value: int):
-        pin.direction = Direction.OUTPUT
         pin.value = value != 1
 
     def set_sonar_angle_pwm(self, angle_pwm: int):
         scaled_value = int((angle_pwm / 128) * 16384)
-        self.sonar_servo_pin.duty_cycle = scaled_value
+        self.pin1.duty_cycle = scaled_value
 
-    def trigger_sonar(self, value: int):
-        # todo: implement this
-        pass
+    def get_sonar_echo_delay_us(self, timeout_us) -> int:
+        # Trigger the sonar w/ 10ms pulse
+        self.pin8.value = True
+        self.sleep_us(10)
+        self.pin8.value = False
 
-    def get_sonar_echo(self):
-        # todo: implement this
-        pass
-
-    def measure_sonar_echo_time(self) -> int:
-        # todo: implement this
-        pass
+        self.pin12.clear()
+        self.pin12.resume()
+        start_time = monotonic_ns()
+        while not self.pin12:
+            if (monotonic_ns() - start_time) > timeout_us * 1000:
+                self.pin12.pause()
+                return -1
+        self.pin12.pause()
+        return self.pin12[0] if len(self.pin12) > 0 else -1
 
     def get_encoder_pin_left(self):
-        return DigitalInOut(P14)
+        return self.pin14
 
     def get_encoder_pin_right(self):
-        return DigitalInOut(P15)
+        return self.pin15
 
     def get_adc_value(self) -> int:
         return P2.read_analog()
