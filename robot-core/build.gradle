@@ -96,6 +96,7 @@ ext {
                     includedFiles.stream(),
                     Arrays.stream(projectDir.listFiles())
                             .filter { f -> f.name.endsWith('.py') }
+                            .sorted { f1, f2 -> f1.name.compareTo(f2.name) }
             )
                     .filter { f -> !f.equals(mainFile) }
                     .filter { f -> !excludedFiles.contains(f) }
