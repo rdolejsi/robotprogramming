@@ -45,34 +45,11 @@ class WheelDriver:
         if reverse:
             left_speed = -left_speed
             right_speed = -right_speed
-        # print("Moving with speed %d pwm, rotation %f rad/s, left_pwm %s, right_pwm %s" % (speed_pwm, rotation_rad, left_speed, right_speed))
+        print("Moving with speed_rad %d, rotation_rad %f, left_pwm %s, right_pwm %s" % (speed_rad, rotation_rad, left_speed, right_speed))
         self.left.move_rad(left_speed)
         self.right.move_rad(right_speed)
         self.speed_rad = speed_rad
         self.rotation_rad = rotation_rad
-
-    def turn(self, speed_rad):
-        """Turns the robot on the spot with specific pwm speed.
-        todo: use rotation speed in rad/s and rotation in radians."""
-        # if speed_pwm == 0:
-        #     self.stop()
-        #     return
-        # left_speed = -speed_pwm
-        # right_speed = speed_pwm
-        # print("Turning with speed %d pwm, left_pwm %s, right_pwm %s" % (speed_pwm, left_speed, right_speed))
-        # self.left.move_pwm(speed_pwm=left_speed)
-        # self.right.move_pwm(speed_pwm=right_speed)
-        # self.speed_pwm = speed_pwm
-        # self.rotation_rad = -1
-        angle = 90 if speed_rad > 0 else -90
-        angle_in_rad = angle * 3.141592653589793 / 180
-        rad_to_travel = self.left.enc.WHEEL_CENTER_DISTANCE * angle_in_rad
-        if angle > 0:
-            self.left.move_radsec_for_distance(speed_rad, rad_to_travel)
-            self.right.move_radsec_for_distance(-speed_rad, rad_to_travel)
-        elif angle < 0:
-            self.left.move_radsec_for_distance(-speed_rad, abs(rad_to_travel))
-            self.right.move_radsec_for_distance(speed_rad, abs(rad_to_travel))
 
     def stop(self):
         """Stops the robot."""

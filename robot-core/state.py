@@ -31,7 +31,9 @@ class Behavior:
                  # (if turning too slow, we might not catch the line again if too low)
                  turn_cycle_tolerance: int,
                  # we disregard sensor transitions which last very short time
-                 fast_sensor_change_dropped_below_cycle_count: int
+                 fast_sensor_change_dropped_below_cycle_count: int,
+                 # how long the cycle is (in microseconds)
+                 cycle_duration_us: int
                  ):
         self.fwd_speed = fwd_speed
         self.side_speed_dec = side_speed_dec
@@ -44,15 +46,17 @@ class Behavior:
         self.turn_arc_speed = turn_arc_speed
         self.turn_cycle_tolerance = turn_cycle_tolerance
         self.fast_sensor_change_dropped_below_cycle_count = fast_sensor_change_dropped_below_cycle_count
+        self.cycle_duration_us = cycle_duration_us
 
 
 class SensorHasCount:
     """A sensor and how many times it needs to match."""
 
-    def __init__(self, sensor, min_count, max_count=None):
+    def __init__(self, sensor, min_count, max_count=None, optional=False):
         self.sensor = sensor
         self.min_count = min_count
         self.max_count = max_count
+        self.optional = optional
 
     def matches(self, sensor, count):
         if sensor != self.sensor:
@@ -110,6 +114,7 @@ class Ctx:
             if self.sensor_count > 0:
                 # we eliminate fluke transitions (short ones) from the history
                 if self.sensor_count >= self.behavior.fast_sensor_change_dropped_below_cycle_count:
+                    # print(f"Last sensor into history: {self.sensor_last:05b} ({self.sensor_count}x) -> change to {self.sensor:05b}")
                     self.sensor_history.append((self.sensor_last, self.sensor_count))
                     if len(self.sensor_history) >= self.sensor_history_length:
                         self.sensor_history.pop(0)
@@ -133,6 +138,8 @@ class Ctx:
             self.system.display_drive_mode(action_new.symbol)
             self.state = state_new
             self.state_key = state_key
+            # reset the sensor history to start fresh within the state and not bring historical baggage
+            self.sensor_history = []
             self.state.on_enter(ctx=self)
 
     def switch_to_state_matching_ctx_situation(self):
@@ -224,18 +231,31 @@ class SensorHistoryStateMatcher(StateMatcher):
         return f"{self.name}(steps=[{', '.join([str(step) for step in self.steps])}])"
 
     def matches(self, ctx: Ctx):
-        # we need to cut the sensor history to the length of the steps from the end
+        # we go through sensor history from the end to the beginning
         # (we are interested in the last steps, not the first ones)
-        if len(ctx.sensor_history_with_current) < len(self.steps):
-            return False
-        sensor_history_view = ctx.sensor_history_with_current[-len(self.steps):]
-        # we are matching in the reverse order to allow for writing horizontally-ordered steps
-        # (we look at them as would the robot see them from the helicopter view)
-        for i in range(len(self.steps)):
-            if not self.steps[-(i + 1)].matches(sensor_history_view[i][0], sensor_history_view[i][1]):
-                return False
-        return True
+        # we match the sensor history to all steps (in reverse), disregarding optional steps if missing
+        sensor_history_view = ctx.sensor_history_with_current
+        step_index = 0
+        history_index = len(sensor_history_view) - 1
 
+        while step_index < len(self.steps) and history_index >= 0:
+            step = self.steps[step_index]
+            sensor, count = sensor_history_view[history_index]
+            if step.matches(sensor, count):
+                step_index += 1
+                history_index -= 1
+            elif step.optional:
+                step_index += 1
+            else:
+                return False
+
+        # Ensure all non-optional steps are matched
+        while step_index < len(self.steps):
+            if not self.steps[step_index].optional:
+                return False
+            step_index += 1
+
+        return True
 
 class State:
     def __init__(self, symbol: str, actions: list[Action], matchers: list[StateMatcher] = None):

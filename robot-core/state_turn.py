@@ -22,7 +22,7 @@ class SideSeekTurnAction(TurnAction):
         super().__init__(symbol=symbol, matching_sensor=matching_sensor, direction=direction)
 
     def on_enter(self, ctx: Ctx):
-        print("Turning..")
+        print("Turning to catch side line..")
         super().on_enter(ctx)
         ctx.wheels.move(speed_rad=ctx.behavior.turn_speed, rotation_rad=ctx.behavior.turn_arc_speed * self.direction)
         ctx.system.display_speed(ctx.wheels.left.speed_pwm, ctx.fwd_speed_pwm_left_max, left=True)
@@ -35,8 +35,22 @@ class CenterSeekTurnAction(TurnAction):
         super().__init__(symbol=symbol, matching_sensor=matching_sensor, direction=direction)
 
     def on_enter(self, ctx: Ctx):
+        print("Turning to catch center line..")
         super().on_enter(ctx)
         ctx.transition_to_state('LINE')
+
+
+class NoCenterSeekTurnAction(TurnAction):
+    def __init__(self, symbol: str, matching_sensor: int, direction: int):
+        super().__init__(symbol=symbol, matching_sensor=matching_sensor, direction=direction)
+
+    def on_enter(self, ctx: Ctx):
+        print("Turning off center line..")
+        super().on_enter(ctx)
+        ctx.wheels.move(speed_rad=ctx.behavior.turn_speed, rotation_rad=ctx.behavior.turn_arc_speed * self.direction)
+        ctx.system.display_speed(ctx.wheels.left.speed_pwm, ctx.fwd_speed_pwm_left_max, left=True)
+        ctx.system.display_speed(ctx.wheels.right.speed_pwm, ctx.fwd_speed_pwm_right_max, left=False)
+        ctx.state_action_cycle = 0
 
 
 class TurnState(State):
@@ -74,7 +88,7 @@ class TurnState(State):
 class LeftTurnState(TurnState):
     def __init__(self, symbol: str, matchers: list[SensorHistoryStateMatcher]):
         actions = [
-            SideSeekTurnAction(symbol=symbol, matching_sensor=0b001, direction=1),
+            SideSeekTurnAction(symbol=symbol, matching_sensor=0b100, direction=1),
             CenterSeekTurnAction(symbol=symbol, matching_sensor=0b010, direction=1)
         ]
         super().__init__(symbol=symbol, actions=actions, matchers=matchers)
@@ -83,7 +97,27 @@ class LeftTurnState(TurnState):
 class RightTurnState(TurnState):
     def __init__(self, symbol: str, matchers: list[SensorHistoryStateMatcher]):
         actions = [
-            SideSeekTurnAction(symbol=symbol, matching_sensor=0b100, direction=-1),
+            SideSeekTurnAction(symbol=symbol, matching_sensor=0b001, direction=-1),
             CenterSeekTurnAction(symbol=symbol, matching_sensor=0b010, direction=-1)
         ]
         super().__init__(symbol=symbol, actions=actions, matchers=matchers)
+
+
+class OffLineLeftTurnState(TurnState):
+    def __init__(self, symbol: str):
+        actions = [
+            NoCenterSeekTurnAction(symbol=symbol, matching_sensor=0b000, direction=1),
+            SideSeekTurnAction(symbol=symbol, matching_sensor=0b100, direction=1),
+            CenterSeekTurnAction(symbol=symbol, matching_sensor=0b010, direction=1)
+        ]
+        super().__init__(symbol=symbol, actions=actions, matchers=[])
+
+
+class OffLineRightTurnState(TurnState):
+    def __init__(self, symbol: str):
+        actions = [
+            NoCenterSeekTurnAction(symbol=symbol, matching_sensor=0b000, direction=-1),
+            SideSeekTurnAction(symbol=symbol, matching_sensor=0b001, direction=-1),
+            CenterSeekTurnAction(symbol=symbol, matching_sensor=0b010, direction=-1)
+        ]
+        super().__init__(symbol=symbol, actions=actions, matchers=[])

@@ -139,9 +139,15 @@ class System:
         IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""
         pass
 
-    def display_drive_mode(self, mode):
-        """Displays the detected drive mode depicting the current situation we are in now.
+    def display_drive_mode(self, mode: str):
+        """Displays the drive mode depicting the current situation we are in now.
         The form of the displaying of the mode is platform-dependent.
+        Variable mode refers to the pictogram displayed, see each implementation (they should be in sync)."""
+        pass
+
+    def display_choice(self, choice: str):
+        """Displays the choice depicting the current situation we are in now.
+        The form of the displaying of the choice is platform-dependent.
         Variable mode refers to the pictogram displayed, see each implementation (they should be in sync)."""
         pass
 

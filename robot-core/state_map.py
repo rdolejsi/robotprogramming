@@ -1,7 +1,8 @@
-from state import SensorHistoryStateMatcher, SensorHasCount, NoOpState
+from state import Behavior, SensorHistoryStateMatcher, SensorHasCount
 from state_generic import StartState, StopState, ErrorState
+from state_intersection import IntersectXState, IntersectYState, IntersectTState, IntersectLState, IntersectRState
 from state_line import LineState
-from state_turn import LeftTurnState, RightTurnState
+from state_turn import LeftTurnState, RightTurnState, OffLineLeftTurnState, OffLineRightTurnState
 
 
 class StateMap:
@@ -11,7 +12,7 @@ class StateMap:
      - supported transitions to other states
     """
 
-    def __init__(self, stop_on_non_line_sensors=False, turns=False, intersections=False):
+    def __init__(self, behavior: Behavior, stop_on_non_line_sensors=False, turns=False, intersections=False):
         # if we want basic scenario, we will transition to stop on any non-line sensor change
         stop_matchers = None if not stop_on_non_line_sensors else [
             SensorHistoryStateMatcher(steps=[SensorHasCount(sensor=0b111, min_count=5)]),
@@ -69,66 +70,83 @@ class StateMap:
             })
 
         if intersections:
+            vertical_min_count = 10
+            horizontal_min_count = behavior.fast_sensor_change_dropped_below_cycle_count
             self.states.update({
                 # detects a full intersection (+)
-                'INTERSECT_X': NoOpState(
+                'INTERSECT_X': IntersectXState(
                     symbol='I+', matchers=[
                         # we will be detecting normal line, then a full intersection, then normal line again
+                        # we also need to account for the fact that we might be slightly off the line
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b010, min_count=10),
-                            SensorHasCount(sensor=0b111, min_count=4),
-                            SensorHasCount(sensor=0b010, min_count=10)
-                        ])
-                    ]
-                ),
-                # detects an intersection to the left and right, not forward (i.e., 'T')
-                'INTERSECT_T': NoOpState(
-                    symbol='IT', matchers=[
-                        SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b000, min_count=10),
-                            SensorHasCount(sensor=0b111, min_count=4),
-                            SensorHasCount(sensor=0b010, min_count=10)
+                            SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            SensorHasCount(sensor=0b110, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b011, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b111, min_count=horizontal_min_count),
+                            SensorHasCount(sensor=0b110, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b011, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
                         ])
                     ]
                 ),
                 # detects an intersection slight to the left and right, not forward (i.e., 'Y')
-                'INTERSECT_Y': NoOpState(
+                'INTERSECT_Y': IntersectYState(
                     symbol='IY', matchers=[
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b101, min_count=10),
-                            SensorHasCount(sensor=0b010, min_count=4),
+                            SensorHasCount(sensor=0b101, min_count=vertical_min_count),
+                            SensorHasCount(sensor=0b110, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b011, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b010, min_count=horizontal_min_count),
+                        ])
+                    ]
+                ),
+                # detects an intersection to the left and right, not forward (i.e., 'T')
+                'INTERSECT_T': IntersectTState(
+                    symbol='IT', matchers=[
+                        SensorHistoryStateMatcher(steps=[
+                            SensorHasCount(sensor=0b000, min_count=vertical_min_count),
+                            SensorHasCount(sensor=0b111, min_count=horizontal_min_count),
+                            SensorHasCount(sensor=0b110, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b011, min_count=horizontal_min_count, optional=True),
+                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
                         ])
                     ]
                 ),
                 # detects an intersection to the left
-                'INTERSECT_L': NoOpState(
+                'INTERSECT_L': IntersectLState(
                     symbol='IL', matchers=[
                         # we are detecting a blip on the right sensor, it has to last for some time (speed-dependent)
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b010, min_count=10),
-                            SensorHasCount(sensor=0b110, min_count=4),
-                            SensorHasCount(sensor=0b010, min_count=10)
+                            SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            SensorHasCount(sensor=0b110, min_count=horizontal_min_count),
+                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
                         ])
                     ]
                 ),
                 # detects an intersection to the right
-                'INTERSECT_R': NoOpState(
+                'INTERSECT_R': IntersectRState(
                     symbol='IR', matchers=[
                         # we are detecting a blip on the right sensor, it has to last for some time (speed-dependent)
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b010, min_count=10),
-                            SensorHasCount(sensor=0b011, min_count=4),
-                            SensorHasCount(sensor=0b010, min_count=10)
+                            SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            SensorHasCount(sensor=0b011, min_count=horizontal_min_count),
+                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
                         ])
                     ]
-                )
+                ),
+                # extra turn operations needed to go off the intersection in the right sensor order
+                'TURN_L_OFF_LINE': OffLineLeftTurnState(symbol='TL'),
+                'TURN_R_OFF_LINE': OffLineRightTurnState(symbol='TR'),
+
             })
-            line_transitions.extend(['INTERSECT_X', 'INTERSECT_R', 'INTERSECT_L', 'INTERSECT_T'])
+            line_transitions.extend(['INTERSECT_X', 'INTERSECT_Y', 'INTERSECT_T', 'INTERSECT_L', 'INTERSECT_R'])
             self.transitions.update({
                 'INTERSECT_X': [ 'STOP'],
                 'INTERSECT_R': [ 'STOP' ],
                 'INTERSECT_L': [ 'STOP' ],
                 'INTERSECT_T': [ 'STOP' ],
+                'TURN_L_OFF_LINE': [ 'STOP' ],
+                'TURN_R_OFF_LINE': [ 'STOP' ],
             })
 
         print("Working with states:")

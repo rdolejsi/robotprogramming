@@ -96,7 +96,7 @@ class LineState(State):
     def on_update(self, ctx: Ctx):
         """Updates the current state."""
         if ctx.sensor != self.action.matching_sensor:
-            print(f"Transitioning: sensor={ctx.sensor:05b} no longer matches while_sensor={self.action.matching_sensor:05b} (current state {self} action {self.action})")
+            # print(f"Transitioning Line: sensor={ctx.sensor:05b} no longer matches while_sensor={self.action.matching_sensor:05b} (current state {self} action {self.action})")
             ctx.state_out_of_bounds_cycle += 1
             if self.transition_action(ctx):
                 ctx.state_out_of_bounds_cycle = 0

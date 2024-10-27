@@ -26,6 +26,9 @@ class System(SystemBase):
         'IR': [0b00100, 0b00100, 0b00111, 0b00100, 0b00100],  # intersection right-straight (T to right)
         'IY': [0b10001, 0b01010, 0b00100, 0b00100, 0b00100],  # split in the road (Y)
         'I+': [0b00100, 0b00100, 0b11111, 0b00100, 0b00100],  # intersection all directions (+)
+        '<': [0b00010, 0b00100, 0b01111, 0b00100, 0b00010],  # interactive choice left
+        '^': [0b00000, 0b00100, 0b01110, 0b10101, 0b00100],  # interactive choice forward
+        '>': [0b00100, 0b00010, 0b01111, 0b00010, 0b00100],  # interactive choice right
         '-': [0b00000, 0b00000, 0b11111, 0b00000, 0b00000],
         '_': [0b00000, 0b00000, 0b00000, 0b00000, 0b11111],
         '.': [0b00000, 0b00000, 0b00000, 0b00000, 0b00100],
@@ -146,11 +149,17 @@ class System(SystemBase):
         display.pixel(x_pos + 3 * stretch, y, ib if il else 0)
         display.pixel(x_pos + 1 * stretch, y, ib if ir else 0)
 
-    def display_drive_mode(self, mode):
-        """Displays the detected drive mode in the lower left corner (5x5 pixels), supporting
+    def display_drive_mode(self, mode: str):
+        """Displays the drive mode in the display center (5x5 pixels), supporting
         all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
         lines = self.DRIVE_MODE_PICTOGRAMS[mode if mode in self.DRIVE_MODE_PICTOGRAMS else ' ']
         self.display_bitmap(6, 0, 5, lines)
+
+    def display_choice(self, choice: str):
+        """Displays the choice next to the drive mode (5x5 pixels), supporting
+        all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
+        lines = self.DRIVE_MODE_PICTOGRAMS[choice if choice in self.DRIVE_MODE_PICTOGRAMS else ' ']
+        self.display_bitmap(1, 0, 5, lines)
 
     def get_drive_mode_symbol_keys(self):
         return list(self.DRIVE_MODE_PICTOGRAMS.keys())

@@ -11,32 +11,33 @@ if __name__ == "__main__":
         left_pwm_min=60, left_pwm_multiplier=0.09, left_pwm_shift=-2.5,
         right_pwm_min=60, right_pwm_multiplier=0.09, right_pwm_shift=-2.5
     )
-    state_map = StateMap(stop_on_non_line_sensors=False, turns=True, intersections=False)
 
     # see Behavior class for the robot behavior definition and parameter characteristics
-    ctx = Ctx(system=system, wheels=wheels, behavior=Behavior(
+    behavior = Behavior(
         fwd_speed=2.5,
         side_speed_dec=2, side_speed_min=1,
         side_arc_min=1, side_arc_inc=3, side_arc_max=6,
         # 25ms per cycle x 75 = 1.875s outside the valid line action rules (i.e., searching for line)
         line_cycle_tolerance=75,
-        turn_speed=0.5, turn_arc_speed=2,
+        turn_speed=0.2, turn_arc_speed=8,
         # 25ms per cycle x 100 = 2.5s outside the valid turn action rules (i.e., searching for 90° turned line)
         turn_cycle_tolerance=100,
-        fast_sensor_change_dropped_below_cycle_count=3
-    ), states=state_map.states, transitions=state_map.transitions, state_key='START')
+        fast_sensor_change_dropped_below_cycle_count=3,
+        cycle_duration_us=25_000
+    )
+    state_map = StateMap(behavior=behavior, stop_on_non_line_sensors=False, turns=True, intersections=False)
+    ctx = Ctx(system=system, wheels=wheels, behavior=behavior,
+              states=state_map.states, transitions=state_map.transitions, state_key='START')
 
     try:
-        state_cycle_length = 25_000
         state_cycle_start = system.ticks_us()
-
         while not system.is_button_a_pressed():
             wheels.update()
             # reads the sensors and builds their history
             ctx.update_sensors()
 
             time_now = system.ticks_us()
-            if system.ticks_diff(time_now, state_cycle_start) > state_cycle_length:
+            if system.ticks_diff(time_now, state_cycle_start) > ctx.behavior.cycle_duration_us:
                 state_cycle_start = time_now
 
                 # finalize context before evaluation

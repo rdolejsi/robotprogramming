@@ -95,11 +95,16 @@ class System(SystemBase):
         display.set_pixel(3, y, ib if il else 0)
         display.set_pixel(1, y, ib if ir else 0)
 
-    def display_drive_mode(self, mode):
-        """Displays the detected drive mode in the lower left corner (3x3 pixels), supporting
+    def display_drive_mode(self, mode: str):
+        """Displays the drive mode in the center (3x3 pixels), overriding choice, supporting
         all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
         lines = self.DRIVE_MODE_PICTOGRAMS[mode if mode in self.DRIVE_MODE_PICTOGRAMS else ' ']
         self.display_bitmap(1, 2, 3, lines)
+
+    def display_choice(self, choice: str):
+        """Displays the choice in the center (3x3 pixels), overriding drive mode, supporting
+        all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
+        self.display_drive_mode(choice)
 
     def get_drive_mode_symbol_keys(self):
         return list(self.DRIVE_MODE_PICTOGRAMS.keys())
