@@ -1,8 +1,8 @@
 class System:
     """System class for the robot core system interface,
     with platform-specific implementations separate classes."""
-    SYS_MBIT = 0
-    SYS_PICO = 1
+    SYS_MBIT = "Micro:Bit"
+    SYS_PICO = "Pico:Ed"
 
     I2C_FREQ = 100_000
     I2C_SENSOR_DEVICE = 0x38
@@ -17,6 +17,7 @@ class System:
     SOUND_SPEED = 343  # m/s
 
     def __init__(self):
+        """Initializes the system."""
         pass
 
     def get_system_type(self):

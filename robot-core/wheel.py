@@ -36,7 +36,7 @@ class Wheel:
         """Moves the wheel using given rad/sec speed (indefinite ticks, time).
         The wheel will continue to move until stop() is called."""
         speed_pwm = self.radsec2pwm(speed_rad)
-        self.move_pwm(speed_pwm)
+        self.move_pwm(speed_pwm + self.pwm_min if speed_pwm > 0 else speed_pwm - self.pwm_min)
 
     def move_pwm_for_ticks(self, speed_pwm, distance_ticks):
         """Moves the wheel forward using given PWM speed for the given distance

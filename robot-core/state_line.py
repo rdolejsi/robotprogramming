@@ -1,10 +1,9 @@
-from state import Ctx, Action, State
+from state import Ctx, SensorMatchingAction, State
 
 
-class LineAction(Action):
+class LineAction(SensorMatchingAction):
     def __init__(self, symbol: str, matching_sensor: int):
-        super().__init__(symbol)
-        self.matching_sensor = matching_sensor
+        super().__init__(symbol=symbol, matching_sensor=matching_sensor)
 
 
 class FwdLineAction(LineAction):

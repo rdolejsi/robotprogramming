@@ -13,8 +13,8 @@ class System(SystemBase):
         'IT': [0b000, 0b111, 0b010],  # intersection left-right (T)
         'IL': [0b010, 0b110, 0b010],  # intersection left-straight (T to left)
         'IR': [0b010, 0b011, 0b010],  # intersection right-straight (T to right)
-        'Y': [0b101, 0b010, 0b010],  # split in the road (Y)
-        '+': [0b010, 0b111, 0b010],
+        'IY': [0b101, 0b010, 0b010],  # split in the road (Y)
+        'I+': [0b010, 0b111, 0b010],  # intersection all directions (+)
         '-': [0b000, 0b111, 0b000],
         '_': [0b000, 0b000, 0b111],
         '.': [0b000, 0b000, 0b010],
@@ -28,6 +28,7 @@ class System(SystemBase):
     def __init__(self, i2c_freq=SystemBase.I2C_FREQ):
         super().__init__()
         i2c.init(freq=i2c_freq)
+        print("System %s initialized, voltage %sV" % (self.get_system_type(), self.get_supply_voltage()))
 
     def get_system_type(self):
         return self.SYS_MBIT

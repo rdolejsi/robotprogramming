@@ -20,10 +20,16 @@ class Behavior:
                  side_arc_inc: float,
                  # maximum arc speed we can perform (to not get too crazy and take our time when turning)
                  side_arc_max: float,
-
                  # tolerance before declaring we're out of line (time-dependent)
                  # (if turning too slow, we might not catch the line again if too low)
                  line_cycle_tolerance: int,
+                 # base turn speed (rad)
+                 turn_speed: float,
+                 # base turn arc speed (rad)
+                 turn_arc_speed: float,
+                 # tolerance before declaring we're out of turn (time-dependent)
+                 # (if turning too slow, we might not catch the line again if too low)
+                 turn_cycle_tolerance: int,
                  # we disregard sensor transitions which last very short time
                  fast_sensor_change_dropped_below_cycle_count: int
                  ):
@@ -34,6 +40,9 @@ class Behavior:
         self.side_arc_inc = side_arc_inc
         self.side_arc_max = side_arc_max
         self.line_cycle_tolerance = line_cycle_tolerance
+        self.turn_speed = turn_speed
+        self.turn_arc_speed = turn_arc_speed
+        self.turn_cycle_tolerance = turn_cycle_tolerance
         self.fast_sensor_change_dropped_below_cycle_count = fast_sensor_change_dropped_below_cycle_count
 
 
@@ -130,7 +139,7 @@ class Ctx:
         """Switches the state matching the sensor history + current sensor state (car behavior in the recent past)."""
         state_transitions = self.transitions.get(self.state_key)
         if state_transitions is None:
-            print("No state transitions for state %s" % self.state_key)
+            print("ERROR: No state transitions for state %s" % self.state_key)
             return
         for state_key in state_transitions:
             state = self.states[state_key]
@@ -153,7 +162,6 @@ class Ctx:
         # we need to update the sensor history with the current sensor and count
         self.sensor_history_with_current = self.sensor_history.copy()
         self.sensor_history_with_current.append((self.sensor, self.sensor_count))
-
 
     @staticmethod
     def _str_history(sensor_history):
@@ -184,6 +192,15 @@ class Action:
     def on_exit(self, ctx: Ctx):
         """Called when the action is exited. Can return new action or indicate state switch."""
         pass
+
+
+class SensorMatchingAction(Action):
+    def __init__(self, symbol: str, matching_sensor: int):
+        super().__init__(symbol=symbol)
+        self.matching_sensor = matching_sensor
+
+    def matches(self, ctx: Ctx) -> bool:
+        return ctx.sensor == self.matching_sensor
 
 
 class StateMatcher:
@@ -239,6 +256,7 @@ class State:
 
     def on_enter(self, ctx: Ctx):
         """Called when the state is entered."""
+        print("Entering state %s" % self)
         ctx.system.display_drive_mode(self.symbol)
         if self.action is not None:
             self.action.on_enter(ctx)

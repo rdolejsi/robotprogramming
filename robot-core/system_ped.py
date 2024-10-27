@@ -24,8 +24,8 @@ class System(SystemBase):
         'IT': [0b00000, 0b00000, 0b11111, 0b00100, 0b00100],  # intersection left-right (T)
         'IL': [0b00100, 0b00100, 0b11100, 0b00100, 0b00100],  # intersection left-straight (T to left)
         'IR': [0b00100, 0b00100, 0b00111, 0b00100, 0b00100],  # intersection right-straight (T to right)
-        'Y': [0b10001, 0b01010, 0b00100, 0b00100, 0b00100],  # split in the road (Y)
-        '+': [0b00100, 0b00100, 0b11111, 0b00100, 0b00100],
+        'IY': [0b10001, 0b01010, 0b00100, 0b00100, 0b00100],  # split in the road (Y)
+        'I+': [0b00100, 0b00100, 0b11111, 0b00100, 0b00100],  # intersection all directions (+)
         '-': [0b00000, 0b00000, 0b11111, 0b00000, 0b00000],
         '_': [0b00000, 0b00000, 0b00000, 0b00000, 0b11111],
         '.': [0b00000, 0b00000, 0b00000, 0b00000, 0b00100],
@@ -53,6 +53,7 @@ class System(SystemBase):
         # Encoder right
         self.pin15 = DigitalInOut(P15)
         self.pin15.direction = Direction.INPUT
+        print("System %s initialized, voltage %sV" % (self.get_system_type(), self.get_supply_voltage()))
 
     def get_system_type(self):
         return self.SYS_PICO
