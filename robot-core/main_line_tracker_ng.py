@@ -25,9 +25,9 @@ if __name__ == "__main__":
 
     # see Behavior class for the robot behavior definition and parameter characteristics
     ctx = Ctx(system=system, wheels=wheels, behavior=Behavior(
-        fwd_speed=6,
+        fwd_speed=10,
         side_speed_dec=4, side_speed_min=3,
-        side_arc_min=4, side_arc_inc=7, side_arc_max=21,
+        side_arc_min=4, side_arc_inc=7, side_arc_max=24,
         # 25ms per cycle x 75 = 1.875s outside the valid line action rules (i.e., searching for line)
         line_cycle_tolerance=75,
         fast_sensor_change_dropped_below_cycle_count=1
