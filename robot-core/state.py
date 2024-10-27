@@ -60,12 +60,15 @@ class SensorHasCount:
 class Ctx:
     """Carries the current operating context of the robot."""
 
-    def __init__(self, system: System, wheels: WheelDriver, behavior: Behavior, states: dict[str, 'State']):
+    def __init__(self, system: System, wheels: WheelDriver, behavior: Behavior,
+                 states: dict[str, 'State'], transitions: dict[str, list[str]], state_key: str):
         self.system = system
         self.wheels = wheels
         self.behavior = behavior
         self.states = states
-        self.state = None
+        self.transitions = transitions
+        self.state_key = state_key
+        self.state = states[state_key]
         self.sensor = None
         self.sensor_count = 0
         self.sensor_last = None
@@ -85,6 +88,9 @@ class Ctx:
         # will be updated on forward to correct values
         self.fwd_speed_pwm_left_max = 255
         self.fwd_speed_pwm_right_max = 255
+        # initialize the state
+        self.state.on_enter(self)
+        self.state.set_default_action(self)
 
     def update_sensors(self):
         """Updates sensor readings and counts."""
@@ -105,30 +111,36 @@ class Ctx:
         else:
             self.sensor_count += 1
 
-    def transition_to_state(self, state_name):
+    def transition_to_state(self, state_key):
         """Transitions to state, a one-liner helper for main code."""
-        action_now = self.state.action
-        state_new = self.states[state_name]
-        state_new.set_default_action(ctx=self)
-        action_new = state_new.action
-        if state_new != self.state:
+        if state_key != self.state_key:
+            action_now = self.state.action
+            state_new = self.states[state_key]
+            state_new.set_default_action(ctx=self)
+            action_new = state_new.action
             self.state.on_exit(ctx=self)
             print("Transitioning: state %s (action %s) -> state %s (action %s)"
                   % (self.state, action_now, state_new, action_new))
             self.system.display_drive_mode(action_new.symbol)
             self.state = state_new
+            self.state_key = state_key
             self.state.on_enter(ctx=self)
 
-    def switch_state_on_ctx_situation_match(self):
-        """Returns the state matching the sensor history + current sensor state (car behavior in the recent past)."""
-        for key, state in self.states.items():
-            if state.matchers is None:
+    def switch_to_state_matching_ctx_situation(self):
+        """Switches the state matching the sensor history + current sensor state (car behavior in the recent past)."""
+        state_transitions = self.transitions.get(self.state_key)
+        if state_transitions is None:
+            print("No state transitions for state %s" % self.state_key)
+            return
+        for state_key in state_transitions:
+            state = self.states[state_key]
+            if state == self.state or state.matchers is None:
                 continue
             for matcher in state.matchers:
                 if matcher.matches(self):
                     print("Switching to state %s (%s) due to match of state matcher, sensor history %s"
-                          % (key, state, Ctx._str_history(self.sensor_history_with_current)))
-                    self.transition_to_state(state.name)
+                          % (state_key, state, Ctx._str_history(self.sensor_history_with_current)))
+                    self.transition_to_state(state_key)
                     return
 
     def add_sensor_to_history(self, sensor):
@@ -139,8 +151,9 @@ class Ctx:
     def before_evaluation(self):
         """Called when the context changes are finished, before all evaluations."""
         # we need to update the sensor history with the current sensor and count
-        self.sensor_history_now = self.sensor_history.copy()
-        self.sensor_history_now.append((self.sensor, self.sensor_count))
+        self.sensor_history_with_current = self.sensor_history.copy()
+        self.sensor_history_with_current.append((self.sensor, self.sensor_count))
+
 
     @staticmethod
     def _str_history(sensor_history):
@@ -177,6 +190,9 @@ class StateMatcher:
     def __init__(self):
         self.name = type(self).__name__.replace('StateMatcher', '')
 
+    def __str__(self):
+        return self.name
+
     def matches(self, ctx: Ctx) -> bool:
         """Returns True if the state matches the current context situation."""
         pass
@@ -186,6 +202,9 @@ class SensorHistoryStateMatcher(StateMatcher):
     def __init__(self, steps: list[SensorHasCount]):
         super().__init__()
         self.steps = steps
+
+    def __str__(self):
+        return f"{self.name}(steps=[{', '.join([str(step) for step in self.steps])}])"
 
     def matches(self, ctx: Ctx):
         # we need to cut the sensor history to the length of the steps from the end
@@ -212,6 +231,11 @@ class State:
 
     def __str__(self):
         return self.name
+
+    def str_full(self):
+        matchers = ', '.join([str(matcher) for matcher in self.matchers]) if self.matchers else 'None'
+        actions = ', '.join([str(action) for action in self.actions])
+        return f"{self.name}(matchers=[{matchers}], actions=[{actions}])"
 
     def on_enter(self, ctx: Ctx):
         """Called when the state is entered."""

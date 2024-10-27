@@ -15,7 +15,6 @@ class FwdLineAction(LineAction):
 
     def on_enter(self, ctx: Ctx):
         super().on_enter(ctx)
-        print("Here with fwd_speed %d" % ctx.behavior.fwd_speed)
         ctx.wheels.move(speed_rad=ctx.behavior.fwd_speed, rotation_rad=0)
         ctx.fwd_speed_pwm_left = ctx.wheels.left.speed_pwm
         ctx.fwd_speed_pwm_right = ctx.wheels.right.speed_pwm
@@ -74,13 +73,13 @@ class RightFwdLineAction(SideFwdLineAction):
 
 
 class LineState(State):
-    def __init__(self, symbol: str):
+    def __init__(self, symbol: str, matchers=None):
         actions: list[LineAction] = [
             FwdLineAction(symbol='|', matching_sensor=0b010),
             LeftFwdLineAction(symbol='\\', matching_sensor=0b100),
             RightFwdLineAction(symbol='/', matching_sensor=0b001)
         ]
-        super().__init__(symbol=symbol, actions=actions)
+        super().__init__(symbol=symbol, actions=actions, matchers=matchers)
         self.actions = actions # type-cast for IDE support
 
     def transition_action(self, ctx: Ctx):

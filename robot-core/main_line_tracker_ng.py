@@ -11,7 +11,10 @@ if __name__ == "__main__":
         left_pwm_min=80, left_pwm_multiplier=0.09, left_pwm_shift=-2.5,
         right_pwm_min=80, right_pwm_multiplier=0.09, right_pwm_shift=-2.5
     )
-    state_map = StateMap()
+    state_map = StateMap(stop_on_non_line_sensors=False)
+    print("Working with states:")
+    for state in state_map.states.values():
+        print(state.str_full())
 
     # Well working configurations:
     # Lenient slow (tolerance 45/2):
@@ -31,10 +34,7 @@ if __name__ == "__main__":
         # 25ms per cycle x 75 = 1.875s outside the valid line action rules (i.e., searching for line)
         line_cycle_tolerance=75,
         fast_sensor_change_dropped_below_cycle_count=1
-    ), states=state_map.states)
-    ctx.state = state_map.states['START']
-    ctx.state.on_enter(ctx)
-    ctx.state.set_default_action(ctx)
+    ), states=state_map.states, transitions=state_map.transitions, state_key='START')
 
     try:
         state_cycle_length = 25_000
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
                 # if our context situation matches one of the states, we switch to that state
                 # (this is typically based on sensor history match, but other matchers are possible)
-                ctx.switch_state_on_ctx_situation_match()
+                ctx.switch_to_state_matching_ctx_situation()
 
                 # while being in the state we update it
                 ctx.state.on_update(ctx)
