@@ -4,23 +4,13 @@ from system import System
 from wheel_driver import WheelDriver
 
 if __name__ == "__main__":
-    # Tries to track a line, stop at first indecision (no line for 3 secs, intersection).
+    # Navigates across lines, turns at sharp turns and stops at intersections and asks for user input where to go
     system = System()
     wheels = WheelDriver(
         system=system,
         left_pwm_min=60, left_pwm_multiplier=0.09, left_pwm_shift=-2.5,
         right_pwm_min=60, right_pwm_multiplier=0.09, right_pwm_shift=-2.5
     )
-
-    # Well working configurations:
-    # Lenient slow (tolerance 45/2):
-    # fwd_speed = 6, side_arc_min = 1, side_arc_inc = 20, side_arc_max = 20
-    # Aggressive slow (tolerance 45/2):
-    # fwd_speed = 6, side_arc_min = 3, side_arc_inc = 15, side_arc_max = 21
-    # Recorded (tolerance 45/2):
-    # fwd_speed = 9, side_speed_dec = 3, side_speed_min = 4.5, side_arc_min = 2, side_arc_inc = 4, side_arc_max = 16
-    # Slight speedup (tolerance 45/2):
-    # fwd_speed = 10, side_speed_dec = 4, side_speed_min = 4, side_arc_min = 3, side_arc_inc = 6, side_arc_max = 21
 
     # see Behavior class for the robot behavior definition and parameter characteristics
     behavior = Behavior(
