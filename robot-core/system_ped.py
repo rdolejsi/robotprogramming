@@ -37,6 +37,31 @@ class System(SystemBase):
         '\\': [0b10000, 0b01000, 0b00100, 0b00010, 0b00001],
         's': [0b00111, 0b01000, 0b01110, 0b00010, 0b11100],
         'x': [0b10001, 0b01010, 0b00100, 0b01010, 0b10001],
+        '0': [0b01110, 0b10011, 0b10101, 0b11001, 0b01110],
+        '1': [0b00010, 0b00110, 0b01010, 0b00010, 0b00010],
+        '2': [0b01110, 0b00001, 0b01110, 0b10000, 0b01110],
+        '3': [0b11110, 0b00001, 0b01111, 0b00001, 0b11110],
+        '4': [0b10000, 0b10100, 0b01110, 0b00100, 0b00100],
+        '5': [0b11110, 0b10000, 0b11110, 0b00001, 0b01110],
+        '6': [0b01110, 0b10000, 0b11110, 0b10001, 0b01110],
+        '7': [0b11111, 0b00010, 0b00100, 0b01000, 0b01000],
+        '8': [0b01110, 0b10001, 0b01110, 0b10001, 0b01110],
+        '9': [0b01110, 0b10001, 0b01111, 0b00001, 0b01110],
+    }
+
+    # position pictograms are smaller to not touch the edges and the middle character
+    # we still print the full 5x5 pictogram, but the actual character is 3x5
+    POS_PICTOGRAMS = {
+        '0': [0b01110, 0b01010, 0b01010, 0b01010, 0b01110],
+        '1': [0b00100, 0b01100, 0b00100, 0b00100, 0b00100],
+        '2': [0b01110, 0b00010, 0b01110, 0b01000, 0b01110],
+        '3': [0b01110, 0b00010, 0b00110, 0b00010, 0b01110],
+        '4': [0b01010, 0b01010, 0b00110, 0b00010, 0b00010],
+        '5': [0b01110, 0b01000, 0b01110, 0b00010, 0b01110],
+        '6': [0b01110, 0b01000, 0b01110, 0b01010, 0b01110],
+        '7': [0b01110, 0b00010, 0b00010, 0b00010, 0b00010],
+        '8': [0b01110, 0b01010, 0b00100, 0b01010, 0b01110],
+        '9': [0b01110, 0b01010, 0b01110, 0b00010, 0b01110],
     }
 
     def __init__(self):
@@ -149,6 +174,9 @@ class System(SystemBase):
         display.pixel(x_pos + 3 * stretch, y, ib if il else 0)
         display.pixel(x_pos + 1 * stretch, y, ib if ir else 0)
 
+    def get_drive_mode_symbol_keys(self):
+        return list(self.DRIVE_MODE_PICTOGRAMS.keys())
+
     def display_drive_mode(self, mode: str):
         """Displays the drive mode in the display center (5x5 pixels), supporting
         all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
@@ -161,8 +189,15 @@ class System(SystemBase):
         lines = self.DRIVE_MODE_PICTOGRAMS[choice if choice in self.DRIVE_MODE_PICTOGRAMS else ' ']
         self.display_bitmap(1, 0, 5, lines)
 
-    def get_drive_mode_symbol_keys(self):
-        return list(self.DRIVE_MODE_PICTOGRAMS.keys())
+    def display_position(self, x: float, y: float):
+        """Displays the X and Y position of the robot on the left and right side of the display,
+        each as a single digit using standard pictogram (5x5 pixels)."""
+        char = str(min(9, int(x)))
+        lines = self.POS_PICTOGRAMS[char]
+        self.display_bitmap(11, 0, 5, lines)
+        char = str(min(9, int(y)))
+        lines = self.POS_PICTOGRAMS[char]
+        self.display_bitmap(1, 0, 5, lines)
 
     def display_speed(self, speed_now, speed_max, left: bool):
         """Displays the current speed as a horizontal bar on the left or right of the display."""

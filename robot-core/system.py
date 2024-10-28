@@ -139,6 +139,10 @@ class System:
         IR sensors (left, right) are interlaced among them, ib is IR brightness 0-9, default 5."""
         pass
 
+    def get_drive_mode_symbol_keys(self):
+        """Returns the keys of the drive mode symbols."""
+        pass
+
     def display_drive_mode(self, mode: str):
         """Displays the drive mode depicting the current situation we are in now.
         The form of the displaying of the mode is platform-dependent.
@@ -151,8 +155,8 @@ class System:
         Variable mode refers to the pictogram displayed, see each implementation (they should be in sync)."""
         pass
 
-    def get_drive_mode_symbol_keys(self):
-        """Returns the keys of the drive mode symbols."""
+    def display_position(self, x: float, y: float):
+        """Displays the robot position on the display. The actual implementation depends on the platform."""
         pass
 
     def display_speed(self, speed_now, speed_max, left: bool):

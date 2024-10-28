@@ -15,6 +15,9 @@ class System(SystemBase):
         'IR': [0b010, 0b011, 0b010],  # intersection right-straight (T to right)
         'IY': [0b101, 0b010, 0b010],  # split in the road (Y)
         'I+': [0b010, 0b111, 0b010],  # intersection all directions (+)
+        '<': [0b100, 0b111, 0b100],  # interactive choice left
+        '^': [0b111, 0b010, 0b010],  # interactive choice forward
+        '>': [0b001, 0b111, 0b001],  # interactive choice right
         '-': [0b000, 0b111, 0b000],
         '_': [0b000, 0b000, 0b111],
         '.': [0b000, 0b000, 0b010],
@@ -95,6 +98,9 @@ class System(SystemBase):
         display.set_pixel(3, y, ib if il else 0)
         display.set_pixel(1, y, ib if ir else 0)
 
+    def get_drive_mode_symbol_keys(self):
+        return list(self.DRIVE_MODE_PICTOGRAMS.keys())
+
     def display_drive_mode(self, mode: str):
         """Displays the drive mode in the center (3x3 pixels), overriding choice, supporting
         all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
@@ -106,8 +112,18 @@ class System(SystemBase):
         all pictograms defined in DRIVE_MODE_PICTOGRAMS (other characters clear the area)."""
         self.display_drive_mode(choice)
 
-    def get_drive_mode_symbol_keys(self):
-        return list(self.DRIVE_MODE_PICTOGRAMS.keys())
+    def display_position(self, x: float, y: float):
+        """Displays the X and Y position of the robot on the left and right side of the display
+        as a bar of maximum 4 pixels. The position on the display is shared with speed indicator."""
+        intensity = 5
+        height_max = 4
+        x_bar_x_pos = 4
+        y_bar_x_pos = 0
+        height_x = min(height_max, int(x))
+        height_y = min(height_max, int(y))
+        for y in range(4):
+            display.set_pixel(x_bar_x_pos, y, intensity if y <= height_x else 0)
+            display.set_pixel(y_bar_x_pos, y, intensity if y <= height_y else 0)
 
     def display_speed(self, speed_now, speed_max, left: bool):
         """Displays the current speed on the display (represented as a 3-pixel bar) on the right side of display."""
