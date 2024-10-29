@@ -115,6 +115,7 @@ class System(SystemBase):
     def display_position(self, x: float, y: float):
         """Displays the X and Y position of the robot on the left and right side of the display
         as a bar of maximum 4 pixels. The position on the display is shared with speed indicator."""
+        print("Position %s, %s" % (x, y))
         intensity = 5
         height_max = 4
         x_bar_x_pos = 4

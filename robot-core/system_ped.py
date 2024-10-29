@@ -192,6 +192,7 @@ class System(SystemBase):
     def display_position(self, x: float, y: float):
         """Displays the X and Y position of the robot on the left and right side of the display,
         each as a single digit using standard pictogram (5x5 pixels)."""
+        print("Position %s, %s" % (x, y))
         char = str(min(9, int(x)))
         lines = self.POS_PICTOGRAMS[char]
         self.display_bitmap(11, 0, 5, lines)

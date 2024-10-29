@@ -20,6 +20,7 @@ class FwdLineAction(LineAction):
         ctx.system.display_speed(ctx.behavior.fwd_speed, ctx.behavior.fwd_speed, left=True)
         ctx.system.display_speed(ctx.behavior.fwd_speed, ctx.behavior.fwd_speed, left=False)
         ctx.state_action_cycle = 0
+        ctx.city_position_forward_accounted_for = False
 
     def on_update(self, ctx: Ctx):
         """When going just forward, we don't do any recalculations."""
@@ -86,7 +87,7 @@ class LineState(State):
         # print("Trans state %s action %s, %s" % (state, action_now, bin(lcr)))
         for action in self.actions:
             if action.matching_sensor == ctx.sensor:
-                print("Transitioning state %s action %s to %s" % (self, self.action, action))
+                print("Transitioning intra-state %s action %s to %s" % (self, self.action, action))
                 self.action.on_exit(ctx)
                 self.action = action
                 action.on_enter(ctx)

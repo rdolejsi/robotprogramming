@@ -1,4 +1,4 @@
-from state import Behavior, SensorHistoryStateMatcher, SensorHasCount
+from state import Behavior, SensorHistoryStateMatcher, SensorHasCount, EitherSensorHasCount
 from state_generic import StartState, StopState, ErrorState
 from state_intersection import IntersectXState, IntersectYState, IntersectTState, IntersectLState, IntersectRState
 from state_line import LineState
@@ -37,8 +37,11 @@ class StateMap:
             'START': ['LINE', 'STOP'],
             'LINE': line_transitions,
             'STOP': ['START'],
+            'ERROR': ['STOP'],
         }
 
+        vertical_min_count = 5
+        horizontal_min_count = behavior.fast_sensor_change_dropped_below_cycle_count + 1
         if turns:
             self.states.update({
                 # detects a turn to the left
@@ -46,9 +49,13 @@ class StateMap:
                     symbol='TL', matchers=[
                         # we are detecting disappearing line while last match shows it turning to the left
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b000, min_count=20),
-                            SensorHasCount(sensor=0b110, min_count=4),
-                            SensorHasCount(sensor=0b010, min_count=10)
+                            SensorHasCount(sensor=0b000, min_count=vertical_min_count),
+                            SensorHasCount(sensor=0b100, min_count=vertical_min_count, optional=True),
+                            SensorHasCount(sensor=0b110, min_count=horizontal_min_count),
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count)
+                            ])
                         ])
                     ]
                 ),
@@ -57,9 +64,13 @@ class StateMap:
                     symbol='TR', matchers=[
                         # we are detecting disappearing line while last match shows it turning to the right
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b000, min_count=20),
-                            SensorHasCount(sensor=0b011, min_count=4),
-                            SensorHasCount(sensor=0b010, min_count=10)
+                            SensorHasCount(sensor=0b000, min_count=vertical_min_count),
+                            SensorHasCount(sensor=0b001, min_count=vertical_min_count, optional=True),
+                            SensorHasCount(sensor=0b011, min_count=horizontal_min_count),
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count)
+                            ])
                         ])
                     ]
                 ),
@@ -71,8 +82,6 @@ class StateMap:
             })
 
         if intersections:
-            vertical_min_count = 10
-            horizontal_min_count = behavior.fast_sensor_change_dropped_below_cycle_count
             self.states.update({
                 # detects a full intersection (+)
                 'INTERSECT_X': IntersectXState(
@@ -80,13 +89,21 @@ class StateMap:
                         # we will be detecting normal line, then a full intersection, then normal line again
                         # we also need to account for the fact that we might be slightly off the line
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b100, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                            ]),
                             SensorHasCount(sensor=0b110, min_count=horizontal_min_count, optional=True),
                             SensorHasCount(sensor=0b011, min_count=horizontal_min_count, optional=True),
                             SensorHasCount(sensor=0b111, min_count=horizontal_min_count),
                             SensorHasCount(sensor=0b110, min_count=horizontal_min_count, optional=True),
                             SensorHasCount(sensor=0b011, min_count=horizontal_min_count, optional=True),
-                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                                # SensorHasCount(sensor=0b100, min_count=vertical_min_count),
+                                # SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                            ]),
                         ])
                     ]
                 ),
@@ -106,10 +123,21 @@ class StateMap:
                     symbol='IT', matchers=[
                         SensorHistoryStateMatcher(steps=[
                             SensorHasCount(sensor=0b000, min_count=vertical_min_count),
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b100, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b110, min_count=horizontal_min_count),
+                                SensorHasCount(sensor=0b011, min_count=horizontal_min_count),
+                            ], optional=True),
                             SensorHasCount(sensor=0b111, min_count=horizontal_min_count),
                             SensorHasCount(sensor=0b110, min_count=horizontal_min_count, optional=True),
                             SensorHasCount(sensor=0b011, min_count=horizontal_min_count, optional=True),
-                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b100, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                            ]),
                         ])
                     ]
                 ),
@@ -118,9 +146,16 @@ class StateMap:
                     symbol='IL', matchers=[
                         # we are detecting a blip on the right sensor, it has to last for some time (speed-dependent)
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b100, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                            ]),
                             SensorHasCount(sensor=0b110, min_count=horizontal_min_count),
-                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b100, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            ]),
                         ])
                     ]
                 ),
@@ -129,9 +164,16 @@ class StateMap:
                     symbol='IR', matchers=[
                         # we are detecting a blip on the right sensor, it has to last for some time (speed-dependent)
                         SensorHistoryStateMatcher(steps=[
-                            SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b100, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                            ]),
                             SensorHasCount(sensor=0b011, min_count=horizontal_min_count),
-                            SensorHasCount(sensor=0b010, min_count=vertical_min_count)
+                            EitherSensorHasCount(sensors=[
+                                SensorHasCount(sensor=0b001, min_count=vertical_min_count),
+                                SensorHasCount(sensor=0b010, min_count=vertical_min_count),
+                            ]),
                         ])
                     ]
                 ),

@@ -38,6 +38,9 @@ class StopAction(GenericAction):
         if ctx.system.is_button_b_pressed():
             ctx.transition_to_state("START")
 
+    def on_exit(self, ctx: Ctx):
+        ctx.reset_navigation_and_position()
+
 
 class StartState(State):
     def __init__(self, symbol: str, matchers=None):
